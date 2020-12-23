@@ -1,0 +1,320 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>15.0</VCProjectVersion>
+    <ProjectGuid>{BDB9C319-44B7-4A2C-A2D9-FD894CFA4D80}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>10.0.18362.0</WindowsTargetPlatformVersion>
+    <ProjectName>bsniffhubgui</ProjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+    <OutDir>$(ProjectName)\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
+    <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <RunCodeAnalysis>false</RunCodeAnalysis>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+    <OutDir>$(ProjectName)\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
+    <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <RunCodeAnalysis>false</RunCodeAnalysis>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>$(ProjectName)\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
+    <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <RunCodeAnalysis>false</RunCodeAnalysis>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>$(ProjectName)\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
+    <CodeAnalysisRuleSet>NativeRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <RunCodeAnalysis>false</RunCodeAnalysis>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>$(ProjectDir)\..\src;$(ProjectDir)\..\src\gui;$(ProjectDir)\lib\npcap\Include;$(ProjectDir)\..\lib\tinycrypt\include;$(ProjectDir)\..\lib\iup-3.30\include</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>4996</DisableSpecificWarnings>
+      <EnablePREfast>false</EnablePREfast>
+    </ClCompile>
+    <Link>
+      <TargetMachine>MachineX86</TargetMachine>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <AdditionalLibraryDirectories>$(ProjectDir)\lib\npcap\Lib;$(ProjectDir)\..\lib\iup-3.30\lib\Win32_vc15</AdditionalLibraryDirectories>
+      <AdditionalDependencies>iupimglib.lib;iup.lib;comctl32.lib;wpcap.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>wpcap.dll</DelayLoadDLLs>
+    </Link>
+    <Manifest>
+      <AdditionalManifestFiles>$(ProjectDir)\res\iup.manifest</AdditionalManifestFiles>
+    </Manifest>
+    <ResourceCompile>
+      <ResourceOutputFileName>$(IntDir)%(Filename).res</ResourceOutputFileName>
+    </ResourceCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <AdditionalIncludeDirectories>$(ProjectDir)\..\src;$(ProjectDir)\..\src\gui;$(ProjectDir)\lib\npcap\Include;$(ProjectDir)\..\lib\tinycrypt\include;$(ProjectDir)\..\lib\iup-3.30\include</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>4996</DisableSpecificWarnings>
+      <EnablePREfast>false</EnablePREfast>
+    </ClCompile>
+    <Link>
+      <TargetMachine>MachineX86</TargetMachine>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalLibraryDirectories>$(ProjectDir)\lib\npcap\Lib;$(ProjectDir)\..\lib\iup-3.30\lib\Win32_vc15</AdditionalLibraryDirectories>
+      <AdditionalDependencies>iupimglib.lib;iup.lib;comctl32.lib;wpcap.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>wpcap.dll</DelayLoadDLLs>
+    </Link>
+    <Manifest>
+      <AdditionalManifestFiles>$(ProjectDir)\res\iup.manifest</AdditionalManifestFiles>
+    </Manifest>
+    <ResourceCompile>
+      <ResourceOutputFileName>$(IntDir)%(Filename).res</ResourceOutputFileName>
+    </ResourceCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(ProjectDir)\..\src;$(ProjectDir)\..\src\gui;$(ProjectDir)\lib\npcap\Include;$(ProjectDir)\..\lib\tinycrypt\include;$(ProjectDir)\..\lib\iup-3.30\include</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <WarningLevel>Level3</WarningLevel>
+      <DisableSpecificWarnings>4996</DisableSpecificWarnings>
+      <EnablePREfast>false</EnablePREfast>
+    </ClCompile>
+    <Link>
+      <AdditionalLibraryDirectories>$(ProjectDir)\lib\npcap\Lib\x64;$(ProjectDir)\..\lib\iup-3.30\lib\Win64_vc15</AdditionalLibraryDirectories>
+      <AdditionalDependencies>iupimglib.lib;iup.lib;comctl32.lib;wpcap.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>wpcap.dll</DelayLoadDLLs>
+      <SubSystem>Windows</SubSystem>
+    </Link>
+    <Manifest>
+      <AdditionalManifestFiles>$(ProjectDir)\res\iup64.manifest</AdditionalManifestFiles>
+    </Manifest>
+    <ResourceCompile>
+      <ResourceOutputFileName>$(IntDir)%(Filename).res</ResourceOutputFileName>
+    </ResourceCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(ProjectDir)\..\src;$(ProjectDir)\..\src\gui;$(ProjectDir)\lib\npcap\Include;$(ProjectDir)\..\lib\tinycrypt\include;$(ProjectDir)\..\lib\iup-3.30\include</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <WarningLevel>Level3</WarningLevel>
+      <DisableSpecificWarnings>4996</DisableSpecificWarnings>
+      <EnablePREfast>false</EnablePREfast>
+    </ClCompile>
+    <Link>
+      <AdditionalLibraryDirectories>$(ProjectDir)\lib\npcap\Lib\x64;$(ProjectDir)\..\lib\iup-3.30\lib\Win64_vc15</AdditionalLibraryDirectories>
+      <AdditionalDependencies>iupimglib.lib;iup.lib;comctl32.lib;wpcap.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>wpcap.dll</DelayLoadDLLs>
+      <SubSystem>Windows</SubSystem>
+    </Link>
+    <Manifest>
+      <AdditionalManifestFiles>$(ProjectDir)\res\iup64.manifest</AdditionalManifestFiles>
+    </Manifest>
+    <ResourceCompile>
+      <ResourceOutputFileName>$(IntDir)%(Filename).res</ResourceOutputFileName>
+    </ResourceCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\lib\tinycrypt\source\aes_decrypt.c" />
+    <ClCompile Include="..\lib\tinycrypt\source\aes_encrypt.c" />
+    <ClCompile Include="..\lib\tinycrypt\source\ccm_mode.c" />
+    <ClCompile Include="..\lib\tinycrypt\source\cmac_mode.c" />
+    <ClCompile Include="..\lib\tinycrypt\source\ecc.c" />
+    <ClCompile Include="..\lib\tinycrypt\source\ecc_dh.c" />
+    <ClCompile Include="..\lib\tinycrypt\source\utils.c" />
+    <ClCompile Include="..\src\base64.c" />
+    <ClCompile Include="..\src\ble.c" />
+    <ClCompile Include="..\src\ble_decoder.c" />
+    <ClCompile Include="..\src\ble_crypto.c" />
+    <ClCompile Include="..\src\getopt.c" />
+    <ClCompile Include="..\src\gui\gui_iup.c" />
+    <ClCompile Include="..\src\gui\iup_icon.h" />
+    <ClCompile Include="..\src\gui\main.c" />
+    <ClCompile Include="..\src\gui\thread_cli.c" />
+    <ClCompile Include="..\src\list_lstbox.c" />
+    <ClCompile Include="..\src\msg_ble.c" />
+    <ClCompile Include="..\src\msg_ble_pcap.c" />
+    <ClCompile Include="..\src\msg_cli.c" />
+    <ClCompile Include="..\src\msg_cli_snif.c" />
+    <ClCompile Include="..\src\pcap.c" />
+    <ClCompile Include="..\src\sniffer_nrf3.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+      </ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+      </ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\src\sniffer_sniffle.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\src\sniffer_ti2.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+      </ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+      </ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\src\list.c" />
+    <ClCompile Include="..\src\list_adv.c" />
+    <ClCompile Include="..\src\msgs.c" />
+    <ClCompile Include="..\src\msg_ble_pipe.c" />
+    <ClCompile Include="..\src\msg_cli_ble.c" />
+    <ClCompile Include="..\src\msg_cli_pcap.c" />
+    <ClCompile Include="..\src\msg_pckt_ble.c" />
+    <ClCompile Include="..\src\msg_to_cli.c" />
+    <ClCompile Include="..\src\pipe.c" />
+    <ClCompile Include="..\src\serial.c" />
+    <ClCompile Include="..\src\sniffers.c" />
+    <ClCompile Include="..\src\task.c" />
+    <ClCompile Include="..\src\thread.c" />
+    <ClCompile Include="..\src\thread_ble.c" />
+    <ClCompile Include="..\src\thread_pcap_r.c" />
+    <ClCompile Include="..\src\thread_pcap_w.c" />
+    <ClCompile Include="..\src\thread_pipe.c" />
+    <ClCompile Include="..\src\thread_sniff.c" />
+    <ClCompile Include="..\src\tstamp.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\lib\tinycrypt\include\tinycrypt\aes.h" />
+    <ClInclude Include="..\lib\tinycrypt\include\tinycrypt\cbc_mode.h" />
+    <ClInclude Include="..\lib\tinycrypt\include\tinycrypt\ccm_mode.h" />
+    <ClInclude Include="..\lib\tinycrypt\include\tinycrypt\cmac_mode.h" />
+    <ClInclude Include="..\lib\tinycrypt\include\tinycrypt\constants.h" />
+    <ClInclude Include="..\lib\tinycrypt\include\tinycrypt\ctr_mode.h" />
+    <ClInclude Include="..\lib\tinycrypt\include\tinycrypt\ctr_prng.h" />
+    <ClInclude Include="..\lib\tinycrypt\include\tinycrypt\ecc.h" />
+    <ClInclude Include="..\lib\tinycrypt\include\tinycrypt\ecc_dh.h" />
+    <ClInclude Include="..\lib\tinycrypt\include\tinycrypt\ecc_dsa.h" />
+    <ClInclude Include="..\lib\tinycrypt\include\tinycrypt\ecc_platform_specific.h" />
+    <ClInclude Include="..\lib\tinycrypt\include\tinycrypt\hmac.h" />
+    <ClInclude Include="..\lib\tinycrypt\include\tinycrypt\hmac_prng.h" />
+    <ClInclude Include="..\lib\tinycrypt\include\tinycrypt\sha256.h" />
+    <ClInclude Include="..\lib\tinycrypt\include\tinycrypt\utils.h" />
+    <ClInclude Include="..\src\base64.h" />
+    <ClInclude Include="..\src\ble.h" />
+    <ClInclude Include="..\src\ble_crypto.h" />
+    <ClInclude Include="..\src\ble_info.h" />
+    <ClInclude Include="..\src\ble_pcap.h" />
+    <ClInclude Include="..\src\getopt.h" />
+    <ClInclude Include="..\src\gui\gui_iup.h" />
+    <ClInclude Include="..\src\list.h" />
+    <ClInclude Include="..\src\list_adv.h" />
+    <ClInclude Include="..\src\list_lstbox.h" />
+    <ClInclude Include="..\src\msgs.h" />
+    <ClInclude Include="..\src\msg_ble.h" />
+    <ClInclude Include="..\src\msg_ble_pcap.h" />
+    <ClInclude Include="..\src\msg_ble_pipe.h" />
+    <ClInclude Include="..\src\msg_cli.h" />
+    <ClInclude Include="..\src\msg_cli_ble.h" />
+    <ClInclude Include="..\src\msg_cli_pcap.h" />
+    <ClInclude Include="..\src\msg_cli_snif.h" />
+    <ClInclude Include="..\src\msg_pckt_ble.h" />
+    <ClInclude Include="..\src\ble_decoder.h" />
+    <ClInclude Include="..\src\msg_to_cli.h" />
+    <ClInclude Include="..\src\pcap.h" />
+    <ClInclude Include="..\src\pipe.h" />
+    <ClInclude Include="..\src\sniffers.h" />
+    <ClInclude Include="..\src\task.h" />
+    <ClInclude Include="..\src\thread.h" />
+    <ClInclude Include="..\src\serial.h" />
+    <ClInclude Include="..\src\thread_ble.h" />
+    <ClInclude Include="..\src\thread_cli.h" />
+    <ClInclude Include="..\src\thread_pcap_r.h" />
+    <ClInclude Include="..\src\thread_pcap_w.h" />
+    <ClInclude Include="..\src\thread_pipe.h" />
+    <ClInclude Include="..\src\thread_sniff.h" />
+    <ClInclude Include="..\src\thread_state.h" />
+    <ClInclude Include="..\src\tstamp.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="res\resource.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="res\Hopstarter-Orb-Bluetooth.ico" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
