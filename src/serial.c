@@ -23,6 +23,7 @@
 #include <dirent.h>     /* struct dirent */
 #include <sys/stat.h>   /* lstat, S_ISLNK */
 #include <libgen.h>     /* basename */
+#include <string.h>     /* memcpy, memset */
 #endif
 #include <assert.h>     /* assert */
 #include <stdio.h>      /* sprintf */
