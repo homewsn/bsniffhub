@@ -67,7 +67,7 @@ $(TARGET_CLI): $(OBJECTS) $(OBJECTS_CLI)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBPATH) $(LIBS)
 
 $(TARGET_GUI): $(OBJECTS) $(OBJECTS_GUI)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBPATH) $(LIBS)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBPATH) $(LIBS) $(LIBS_GUI)
 
 # object files
 $(OBJECTS): $(OBJDIR)/%.o: %.c $(DEPS) | $(OBJDIR)
