@@ -74,7 +74,7 @@ static int pipe_write_packet(ble_info_t *info)
 }
 
 //--------------------------------------------
-static int wireshark_start(const char *name, const char *pipe_name)
+static int wireshark_start(const char *name, char *pipe_name)
 {
 #ifdef _WIN32
 
