@@ -1672,6 +1672,9 @@ static ble_packet_decode_res_t packet_decode(ble_info_t *info, uint8_t recursion
 #endif
 									secure_connection_mackey_ltk_generate(&conn);
 									break;
+								case BLE_ASSOCIATION_MODEL_UNDEFINED:
+									assert(0);
+									break;
 								}
 							}
 						}
