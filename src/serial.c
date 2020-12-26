@@ -249,6 +249,14 @@ int serial_open(const char *name, const port_settings_t *set, HANDLE *dev)
 
 	switch (set->baudrate)
 	{
+#if defined(__APPLE__) && defined(__MACH__)
+	// I don't know if this works for macOS or not
+	case 921600:
+	case 1000000:
+	case 2000000:
+		baudrate_flag = set->baudrate;
+		break;
+#else
 	case 921600:
 		baudrate_flag = B921600;
 		break;
@@ -258,6 +266,7 @@ int serial_open(const char *name, const port_settings_t *set, HANDLE *dev)
 	case 2000000:
 		baudrate_flag = B2000000;
 		break;
+#endif
 	default:
 		print_error_serial(__LINE__);
 		return -1;
