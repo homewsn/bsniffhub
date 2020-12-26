@@ -94,7 +94,6 @@ static thread_mode_t thread_mode = THREAD_CLI_INPUT_THROUGH;
 #include <sys/ioctl.h>
 #include <sys/select.h>
 #include <termios.h>
-#include <stropts.h>
 
 //--------------------------------------------
 void console_setup(void)
