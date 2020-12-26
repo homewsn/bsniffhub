@@ -1,5 +1,11 @@
+[![Release Status](https://img.shields.io/github/release/homewsn/bsniffhub.svg)](https://github.com/homewsn/bsniffhub/releases)
+[![Travis CI Build Status](https://travis-ci.org/homewsn/bsniffhub.svg?branch=master)](https://travis-ci.org/homewsn/bsniffhub)
+[![Coverity Scan Build Status](https://scan.coverity.com/projects/22350/badge.svg?flat=1)](https://scan.coverity.com/projects/homewsn-bsniffhub)
+[![Appveyor Build Status](https://ci.appveyor.com/api/projects/status/github/homewsn/bsniffhub?branch=master&svg=true)](https://ci.appveyor.com/project/homewsn/bsniffhub)
+
 ### Bsniffhub
-Bsniffhub is a utility that interfaces Bluetooth Low Energy (BLE) sniffer with Wireshark to capture and display wireless traffic.
+
+Bsniffhub is a utility that interfaces Bluetooth Low Energy (BLE) sniffer with Wireshark to capture and display wireless traffic.<br>
 Bsniffhub combines the following features:
 * support for several types of BLE sniffers that use a virtual USB serial port for communication, such as Sniffle, nRF Sniffer 3 or SmartRF Packet Sniffer 2.
 * ensuring the launch of Wireshark and feeding packets to it through a local pipe.
@@ -30,16 +36,14 @@ Bsniffhub has both a console version and a graphical user interface version, and
 #### Dependencies
 * [libpcap](https://www.tcpdump.org/#latest-releases) (or [Npcap SDK](https://nmap.org/npcap/#download) for Windows)
 * [TinyCrypt Cryptographic Library](https://github.com/intel/tinycrypt)
-* [IUP Portable User Interface Version 3.30](http://webserver2.tecgraf.puc-rio.br/iup/) for GUI version
+* [IUP Portable User Interface](http://webserver2.tecgraf.puc-rio.br/iup/) for GUI version
 
 #### Building (Linux)
 Download [the latest release](https://github.com/homewsn/bsniffhub/releases) in tarball from github and untar it, or clone the bsniffhub repository.
 Install a new version of the [pcap library](https://www.tcpdump.org/#latest-releases) if you want to load the pcapng files, and your version of the pcap library does not support them.
-You need the appropriate IUP library to make the GUI version. You can see [a list of the available packages](https://sourceforge.net/projects/iup/files/3.30/Linux%20Libraries/). For example, if you have Ubuntu 20.04 download Linux54_64 file archive, extract and copy `libftgl.a` and `libftgl.so` files to `bsniffhub/lib/iup-3.30/lib/Linux54_64` directory, then change the library name in `bsniffhub/src/gui/module.mk` like
-```sh
-LIBPATH += -Llib/iup-3.30/lib/Linux54_64
-```
+You need the appropriate [IUP library](lib/iup/ReadMe.md#downloading-and-installation-linux) to make the GUI version.
 The TinyCrypt Cryptographic Library source files are already included in `bsniffhub/lib/tinycrypt`.
+
 To build both console and GUI versions:
 ```sh
 $ make
@@ -54,8 +58,9 @@ Make sure you have Wireshark installed.
 #### Building (Windows)
 Download [the latest release](https://github.com/homewsn/bsniffhub/releases) in zip from github and unzip it, or clone the bsniffhub repository.
 You need to download [Npcap SDK](https://nmap.org/npcap/#download) yourself, since its license prohibits distribution, and unzip it in `bsniffhub/msvs/lib/npcap` directory.
-You need the appropriate IUP library to make the GUI version. You can see [a list of the available packages](https://sourceforge.net/projects/iup/files/3.30/Windows%20Libraries/Static/). For example, if you have MSVC 2019 and want to make x64 version download Win64_vc16 file archive, extract and copy `iup.lib` and `iupimglib.lib` files to the  `bsniffhub/lib/iup-3.30/lib/Win64_vc16` directory. Open the MSVC solution, change the library name and path in the bsniffhubgui project properties if it's needed, then build the solution or the single project.
-The TinyCrypt Cryptographic Library source files are already included in `bsniffhub/lib/tinycrypt`.
+You need the appropriate [IUP library](lib/iup/ReadMe.md#downloading-and-installation-windows) to make the GUI version.
+The TinyCrypt Cryptographic Library source files are already included in `bsniffhub/lib/tinycrypt`.<br>
+Open the MSVC 2017 solution, change the path to the IUP libraries in the bsniffhubgui project properties if it's needed, then build the solution or the single project.<br>
 Make sure you have Wireshark and Npcap runtime libraries installed.
 
 #### Usage (Linux)
@@ -126,6 +131,7 @@ See [Examples (Linux)](#examples-linux), but you can use the additional optional
 
 #### Obtaining LTK if BLE devices use Legacy Pairing
 Bsniffhub can provide TK, STK and LTK if the `-n` option is not used and the BLE devices use the Legacy Pairing method with the Just Works or Passkey Entry association models. For demonstration, you can use the appropriate pcap files in the example directory.
+
 The Legacy Pairing method with the Just Works association model:
 ```
 $ ./bsniffhub -rexamples/lp-justworks.pcap -wout.pcap
@@ -165,6 +171,7 @@ File processing completed.
 ```
 #### Obtaining LTK if BLE devices use Secure Connection with a debug key
 Bsniffhub can provide LTK if the `-n` option is not used and the BLE devices use the Seciure Connection method and at least one of the  devices uses a debug key. For demonstration, you can use the appropriate pcap files in the example directory.
+
 The Secure Connection method with the Just Works association model:
 ```
 $ ./bsniffhub -rexamples/sc-justworks.pcap -wout.pcap
@@ -216,7 +223,3 @@ Encryption start detected. LTK used.
 Connection terminated.
 File processing completed.
 ```
-
-
-The source code is licensed under [GPLv2](http://www.gnu.org/licenses/gpl-2.0.html).
-3rd-party sources have their own licensing model.

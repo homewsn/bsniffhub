@@ -101,7 +101,7 @@
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>$(ProjectDir)\..\src;$(ProjectDir)\..\src\gui;$(ProjectDir)\lib\npcap\Include;$(ProjectDir)\..\lib\tinycrypt\include;$(ProjectDir)\..\lib\iup-3.30\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)\..\src;$(ProjectDir)\..\src\gui;$(ProjectDir)\lib\npcap\Include;$(ProjectDir)\..\lib\tinycrypt\include;$(ProjectDir)\..\lib\iup\include</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4996</DisableSpecificWarnings>
       <EnablePREfast>false</EnablePREfast>
     </ClCompile>
@@ -109,7 +109,7 @@
       <TargetMachine>MachineX86</TargetMachine>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
-      <AdditionalLibraryDirectories>$(ProjectDir)\lib\npcap\Lib;$(ProjectDir)\..\lib\iup-3.30\lib\Win32_vc15</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ProjectDir)\lib\npcap\Lib;$(ProjectDir)\..\lib\iup\lib\Win32_vc15</AdditionalLibraryDirectories>
       <AdditionalDependencies>iupimglib.lib;iup.lib;comctl32.lib;wpcap.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>wpcap.dll</DelayLoadDLLs>
     </Link>
@@ -126,7 +126,7 @@
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <AdditionalIncludeDirectories>$(ProjectDir)\..\src;$(ProjectDir)\..\src\gui;$(ProjectDir)\lib\npcap\Include;$(ProjectDir)\..\lib\tinycrypt\include;$(ProjectDir)\..\lib\iup-3.30\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)\..\src;$(ProjectDir)\..\src\gui;$(ProjectDir)\lib\npcap\Include;$(ProjectDir)\..\lib\tinycrypt\include;$(ProjectDir)\..\lib\iup\include</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4996</DisableSpecificWarnings>
       <EnablePREfast>false</EnablePREfast>
     </ClCompile>
@@ -136,7 +136,7 @@
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>$(ProjectDir)\lib\npcap\Lib;$(ProjectDir)\..\lib\iup-3.30\lib\Win32_vc15</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ProjectDir)\lib\npcap\Lib;$(ProjectDir)\..\lib\iup\lib\Win32_vc15</AdditionalLibraryDirectories>
       <AdditionalDependencies>iupimglib.lib;iup.lib;comctl32.lib;wpcap.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>wpcap.dll</DelayLoadDLLs>
     </Link>
@@ -149,14 +149,14 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ProjectDir)\..\src;$(ProjectDir)\..\src\gui;$(ProjectDir)\lib\npcap\Include;$(ProjectDir)\..\lib\tinycrypt\include;$(ProjectDir)\..\lib\iup-3.30\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)\..\src;$(ProjectDir)\..\src\gui;$(ProjectDir)\lib\npcap\Include;$(ProjectDir)\..\lib\tinycrypt\include;$(ProjectDir)\..\lib\iup\include</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <WarningLevel>Level3</WarningLevel>
       <DisableSpecificWarnings>4996</DisableSpecificWarnings>
       <EnablePREfast>false</EnablePREfast>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>$(ProjectDir)\lib\npcap\Lib\x64;$(ProjectDir)\..\lib\iup-3.30\lib\Win64_vc15</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ProjectDir)\lib\npcap\Lib\x64;$(ProjectDir)\..\lib\iup\lib\Win64_vc15</AdditionalLibraryDirectories>
       <AdditionalDependencies>iupimglib.lib;iup.lib;comctl32.lib;wpcap.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>wpcap.dll</DelayLoadDLLs>
       <SubSystem>Windows</SubSystem>
@@ -170,14 +170,14 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ProjectDir)\..\src;$(ProjectDir)\..\src\gui;$(ProjectDir)\lib\npcap\Include;$(ProjectDir)\..\lib\tinycrypt\include;$(ProjectDir)\..\lib\iup-3.30\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)\..\src;$(ProjectDir)\..\src\gui;$(ProjectDir)\lib\npcap\Include;$(ProjectDir)\..\lib\tinycrypt\include;$(ProjectDir)\..\lib\iup\include</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <WarningLevel>Level3</WarningLevel>
       <DisableSpecificWarnings>4996</DisableSpecificWarnings>
       <EnablePREfast>false</EnablePREfast>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>$(ProjectDir)\lib\npcap\Lib\x64;$(ProjectDir)\..\lib\iup-3.30\lib\Win64_vc15</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ProjectDir)\lib\npcap\Lib\x64;$(ProjectDir)\..\lib\iup\lib\Win64_vc15</AdditionalLibraryDirectories>
       <AdditionalDependencies>iupimglib.lib;iup.lib;comctl32.lib;wpcap.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>wpcap.dll</DelayLoadDLLs>
       <SubSystem>Windows</SubSystem>
