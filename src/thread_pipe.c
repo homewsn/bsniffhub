@@ -142,7 +142,14 @@ static int wireshark_start(const char *name, char *pipe_name)
 		char *newargv[] = { "wireshark", "-i", pipe_name, "-k", "-l", NULL };
 
 		close(child_pipe[0]);
-		fcntl(child_pipe[1], F_SETFD, FD_CLOEXEC);
+		res = fcntl(child_pipe[1], F_SETFD, FD_CLOEXEC);
+		if (res == -1)
+		{
+			write(child_pipe[1], buf, sizeof(buf));
+			printf("%s", "FATAL ERROR: Could not run Wireshark.\n");
+			perror("FATAL ERROR");
+			exit(EXIT_FAILURE);
+		}
 
 		res = execvp("wireshark", newargv);
 		if (res == -1)
