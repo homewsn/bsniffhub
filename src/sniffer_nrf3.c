@@ -320,24 +320,22 @@ static int packet_decode(uint8_t *buf, size_t len, ble_info_t **info)
 	static uint64_t current_packet_transmission_time;
 	static uint64_t previous_packet_transmission_time;
 
-	if ((*info = (ble_info_t *)malloc(sizeof(ble_info_t))) == NULL)
-	{
-		return -1;
-	}
-	memset(*info, 0, sizeof(ble_info_t));
-
 	pkt_length = buf[0] | ((uint16_t)buf[1] << 8);
 	if (pkt_length > len)
 	{
-		free(*info);
 		return -1;
 	}
 	hdr_length = buf[MSG_HEADER_SIZE];
 	if (hdr_length >= len || hdr_length >= pkt_length)
 	{
-		free(*info);
 		return -1;
 	}
+
+	if ((*info = (ble_info_t *)malloc(sizeof(ble_info_t))) == NULL)
+	{
+		return -1;
+	}
+	memset(*info, 0, sizeof(ble_info_t));
 
 	(*info)->size = pkt_length - hdr_length - 1;
 	if (((*info)->buf = (uint8_t *)malloc((*info)->size)) == NULL)
