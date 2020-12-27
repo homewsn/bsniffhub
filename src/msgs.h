@@ -71,7 +71,7 @@ int msggap_init(msggap_t *gap);
 int msggap_request(msggap_t *gap);
 int msggap_get_request(msggap_t *gap);
 int msggap_reply(msggap_t *gap);
-int msggap_close(msggap_t *gap);
+#define msggap_close(a) msggap_reply(a)
 int msggap_destroy(msggap_t *gap);
 
 #endif /* MSGS_H_ */

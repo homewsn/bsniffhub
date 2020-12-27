@@ -243,7 +243,9 @@ int msggap_init(msggap_t *gap)
 		pthread_mutex_destroy(&gap->mutex);
 		return -1;
 	}
+	pthread_mutex_lock(&gap->mutex);
 	gap->request = 0;
+	pthread_mutex_unlock(&gap->mutex);
 	gap->valid = 1;
 	return 0;
 }
@@ -291,18 +293,6 @@ int msggap_reply(msggap_t *gap)
 	gap->request = 0;
 	pthread_cond_signal(&gap->cond);
 	pthread_mutex_unlock(&gap->mutex);
-	return 0;
-}
-
-//--------------------------------------------
-int msggap_close(msggap_t *gap)
-{
-	if (!gap->valid)
-	{
-		return -1;
-	}
-	gap->request = 0;
-	pthread_cond_signal(&gap->cond);
 	return 0;
 }
 
