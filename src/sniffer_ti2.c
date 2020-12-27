@@ -188,6 +188,15 @@ static void command_send(uint8_t *buf, size_t len)
 static int packet_decode(uint8_t *buf, size_t len, ble_info_t **info)
 {
 	uint64_t timestamp_us;
+	uint16_t pkt_length;
+
+	// Timestamp(6) + Channel(1) + ConnectionEventCounter(2) + Info(1) + RSSI(1) + Status(1) = 12
+	// SOF(2) + PacketInfo(1) + PacketLength(2) + EOF(2) = 7
+	pkt_length = ((uint16_t)buf[3] | (uint16_t)(buf[4] << 8)) - 12;
+	if (pkt_length != len - 12 - 7)
+	{
+		return -1;
+	}
 
 	if ((*info = (ble_info_t *)malloc(sizeof(ble_info_t))) == NULL)
 	{
@@ -195,7 +204,7 @@ static int packet_decode(uint8_t *buf, size_t len, ble_info_t **info)
 	}
 	memset(*info, 0, sizeof(ble_info_t));
 
-	(*info)->size = ((uint16_t)buf[3] | (uint16_t)(buf[4] << 8)) - 12;
+	(*info)->size = pkt_length;
 	(*info)->phy = PHY_1M;
 	(*info)->channel = buf[11];
 	switch (buf[14] & 0x03)
@@ -211,8 +220,8 @@ static int packet_decode(uint8_t *buf, size_t len, ble_info_t **info)
 		(*info)->dir = DIR_SLAVE_MASTER;
 		break;
 	}
-	(*info)->rssi = *(buf + 15 + (*info)->size); // RSSI value with a minus sign
-	if ((*(buf + 16 + (*info)->size)) & 0x80)
+	(*info)->rssi = *(buf + 15 + pkt_length); // RSSI value with a minus sign
+	if ((*(buf + 16 + pkt_length)) & 0x80)
 	{
 		(*info)->status_crc = CHECK_OK;
 	}
@@ -235,12 +244,12 @@ static int packet_decode(uint8_t *buf, size_t len, ble_info_t **info)
 	(*info)->ts.tv_sec = (long)(((*info)->timestamp) / 1000000);
 	(*info)->ts.tv_usec = (long)(((*info)->timestamp) - (uint64_t)((*info)->ts.tv_sec) * 1000000);
 
-	if (((*info)->buf = (uint8_t *)malloc((*info)->size)) == NULL)
+	if (((*info)->buf = (uint8_t *)malloc(pkt_length)) == NULL)
 	{
 		free(*info);
 		return -1;
 	}
-	memcpy((*info)->buf, (buf + 15), (*info)->size);
+	memcpy((*info)->buf, (buf + 15), pkt_length);
 
 	if (!memcmp(buf + 15, &adv_channel_access_address[0], ACCESS_ADDRESS_LENGTH))
 	{
@@ -259,7 +268,7 @@ static int packet_decode(uint8_t *buf, size_t len, ble_info_t **info)
 			}
 		}
 	}
-	return (int)(*info)->size;
+	return (int)pkt_length;
 }
 
 //--------------------------------------------
@@ -301,7 +310,6 @@ static int serial_packet_decode(uint8_t *buf, size_t len, ble_info_t **info)
 	{
 		return -1;
 	}
-
 	if (len < pkt_length + 7U + fcs_field)
 	{
 		return 0;
