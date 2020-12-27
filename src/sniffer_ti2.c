@@ -296,6 +296,12 @@ static int serial_packet_decode(uint8_t *buf, size_t len, ble_info_t **info)
 		fcs_field = 1;
 	}
 	pkt_length = buf[3] | (buf[4] << 8);
+
+	if (pkt_length > MAX_MSG_SIZE - 7U - fcs_field)
+	{
+		return -1;
+	}
+
 	if (len < pkt_length + 7U + fcs_field)
 	{
 		return 0;
