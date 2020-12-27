@@ -71,7 +71,14 @@ int serial_open(const char *name, const port_settings_t *set, HANDLE *dev)
 	assert(set);
 	assert(dev);
 
-	strcat(filename, name);
+	if (strncmp(filename, name, strlen(filename)))
+	{
+		strcat(filename, name);
+	}
+	else
+	{
+		strcpy(filename, name);
+	}
 	*dev = CreateFile(
 		filename,
 		GENERIC_READ | GENERIC_WRITE,
