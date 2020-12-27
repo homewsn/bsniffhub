@@ -50,7 +50,6 @@
 // Note: Padding byte is added by radio and is not received on air. It should be removed after reception on UART.
 
 //--------------------------------------------
-#define MIN_MSG_SIZE                    8
 #define MAX_MSG_SIZE                    SERIAL_BUF_SIZE
 #define MSG_HEADER_SIZE                 6
 
@@ -328,7 +327,17 @@ static int packet_decode(uint8_t *buf, size_t len, ble_info_t **info)
 	memset(*info, 0, sizeof(ble_info_t));
 
 	pkt_length = buf[0] | ((uint16_t)buf[1] << 8);
+	if (pkt_length > len)
+	{
+		free(*info);
+		return -1;
+	}
 	hdr_length = buf[MSG_HEADER_SIZE];
+	if (hdr_length >= len || hdr_length >= pkt_length)
+	{
+		free(*info);
+		return -1;
+	}
 
 	(*info)->size = pkt_length - hdr_length - 1;
 	if (((*info)->buf = (uint8_t *)malloc((*info)->size)) == NULL)
@@ -417,6 +426,12 @@ static int packet_decode(uint8_t *buf, size_t len, ble_info_t **info)
 		// data channel packet
 		uint8_t cp_flag;
 
+		if (MSG_HEADER_SIZE + hdr_length + ACCESS_ADDRESS_LENGTH > len)
+		{
+			free((*info)->buf);
+			free(*info);
+			return -1;
+		}
 		cp_flag = buf[MSG_HEADER_SIZE + hdr_length + ACCESS_ADDRESS_LENGTH] & CP_MASK ? 1 : 0;
 		memcpy((*info)->buf,
 			buf + MSG_HEADER_SIZE + hdr_length,
@@ -467,6 +482,10 @@ static int serial_packet_decode(uint8_t *buf, size_t len, ble_info_t **pkt_info)
 		if (buf[cnt] == SLIP_END)
 		{
 			res = slip_decode(&msg_buf[0], buf, cnt);
+			if (res < MSG_HEADER_SIZE)
+			{
+				return -1;
+			}
 			if (msg_buf[5] == EVENT_PACKET && last_cmd == SENT_CMD_REQ_SCAN_CONT)
 			{
 				if ((res = packet_decode(&msg_buf[0], (size_t)res, pkt_info)) < 0)
