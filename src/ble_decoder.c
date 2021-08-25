@@ -1066,8 +1066,8 @@ static ble_packet_decode_res_t packet_decode(ble_info_t *info, uint8_t recursion
 											__LINE__);
 									}
 #endif
+								}
 							}
-						}
 							else
 							{
 								// unknown
@@ -1119,6 +1119,11 @@ static ble_packet_decode_res_t packet_decode(ble_info_t *info, uint8_t recursion
 			{
 				// if the sniffer or pcap file does not provide the packet direction, use calculated one
 				info->dir = conn.current_packet_direction;
+			}
+			else
+			{
+				// if the sniffer or pcap file does provide the packet direction, always use it
+				conn.current_packet_direction = info->dir;
 			}
 
 			if (info->channel == -1)
