@@ -5,9 +5,9 @@
 
 ### Bsniffhub
 
-Bsniffhub is a utility that interfaces Bluetooth Low Energy (BLE) sniffer with Wireshark to capture and display wireless traffic.<br>
+Bsniffhub is a utility that interfaces Bluetooth Low Energy (BLE) sniffer with Wireshark to capture, decrypt, and display wireless traffic.<br>
 Bsniffhub combines the following features:
-* support for several types of BLE sniffers that use a virtual USB serial port for communication, such as Sniffle, nRF Sniffer 3 or SmartRF Packet Sniffer 2.
+* support for several types of BLE sniffers that use a virtual USB serial port for communication, such as Sniffle, nRF Sniffer or SmartRF Packet Sniffer 2.
 * ensuring the launch of Wireshark and feeding packets to it through a local pipe.
 * support for several types of BLE link layer headers for PCAP files and Wireshark, such as LINKTYPE_BLUETOOTH_LE_LL, [LINKTYPE_BLUETOOTH_LE_LL_WITH_PHDR](https://www.tcpdump.org/linktypes/LINKTYPE_BLUETOOTH_LE_LL_WITH_PHDR.html), and [LINKTYPE_NORDIC_BLE](https://www.tcpdump.org/linktypes/LINKTYPE_NORDIC_BLE.html); dissectors for these types are already included in the Wireshark distributions.
 * the Temporary Key (TK) obtaining, the Short Term Key (STK) calculation and subsequent capture of the Long Term Key (LTK) if the BLE devices use the Legacy Pairing method with the Just Works or Passkey Entry association models.
