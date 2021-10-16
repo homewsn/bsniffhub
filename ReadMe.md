@@ -18,20 +18,20 @@ Bsniffhub can be used both for working with the BLE sniffers and for decrypting 
 Bsniffhub has both a console version and a graphical user interface version, and it can be built for use on Linux or Windows.
 
 #### Supported BLE sniffers:
-* [Sniffle v1.4](https://github.com/nccgroup/Sniffle) by Sultan Qasim Khan from NCC Group
-* [nRF Sniffer for Bluetooth LE v3.x.x](https://www.nordicsemi.com/Software-and-tools/Development-Tools/nRF-Sniffer-for-Bluetooth-LE) by Nordic Semiconductor
-* [SmartRF Packet Sniffer 2 v1.8.0](https://www.ti.com/tool/download/PACKET-SNIFFER-2) by Texas Instruments
+* [Sniffle v1.6](https://github.com/nccgroup/Sniffle) by Sultan Qasim Khan from NCC Group
+* [nRF Sniffer for Bluetooth LE v3.x.0 or 4.0.0](https://www.nordicsemi.com/Products/Development-tools/nrf-sniffer-for-bluetooth-le) by Nordic Semiconductor
+* [SmartRF Packet Sniffer 2 v1.9.0](https://www.ti.com/tool/download/PACKET-SNIFFER-2) by Texas Instruments
 
-| Supported features | Sniffle v1.4 | nRF Sniffer v3.x.x | SmartRF Packet Sniffer 2 v1.8.0 |
-| ------ | :------: | :------: | :------: |
-| PHY 1 Mbps | + | + | + |
-| PHY 2 Mbps | + | + | - |
-| PHY Coded S2 | + | - | - |
-| PHY Coded S8 | + | - | - |
-| CSA#1 | + | + | + |
-| CSA#2 | + | + | - |
-| Hardware | TI CC1352/CC26x2 | nRF51/nRF52 | TI CC1352/CC26x2 |
-| Serial port baud rate, bps | 2000000 | 1000000 | 921600 |
+| Supported features | Sniffle v1.6 | nRF Sniffer v3.x.0 | nRF Sniffer v4.0.0 | SmartRF Packet Sniffer 2 v1.9.0 |
+| ------ | :------: | :------: | :------: | :------: |
+| PHY 1 Mbps | + | + | + | + |
+| PHY 2 Mbps | + | + | + | - |
+| PHY Coded S2 | + | - | + | - |
+| PHY Coded S8 | + | - | + | - |
+| CSA#1 | + | + | + | + |
+| CSA#2 | + | + | + | - |
+| Hardware | TI CC1352/CC26x2 | nRF51/nRF52 | nRF51/nRF52 | TI CC1352/CC26x2 |
+| Serial port baud rate, bps | 2000000 | 1000000 | 1000000 | 3000000 |
 
 #### Dependencies
 * [libpcap](https://www.tcpdump.org/#latest-releases) (or [Npcap SDK](https://nmap.org/npcap/#download) for Windows)
@@ -75,9 +75,10 @@ Usage:
 
 Mandatory arguments for sniffer device input:
   -s <sniffer>       Sniffer device:
-                     'N' - nRF Sniffer v3.x.x
-                     'T' - SmartRF Packet Sniffer 2 v1.8.0
-                     'S' - Sniffle v1.4
+                     'N3' - nRF Sniffer v3.x.0
+                     'N4' - nRF Sniffer v4.0.0
+                     'T' - SmartRF Packet Sniffer 2 v1.9.0
+                     'S' - Sniffle v1.6
   -p <serport>       Serial port name
 
 Optional argument for sniffer device input:
@@ -111,9 +112,9 @@ Run Wireshark, capture packets from `Sniffle` on `/dev/ttyACM0` port with baud r
 ```
 $ ./bsniffhub -s S -p /dev/ttyACM0 -b 1000000
 ```
-Capture packets from `nRF Sniffer` on `/dev/ttyUSB0` port and save the captured packets with the `LINKTYPE_BLUETOOTH_LE_LL` packet header to `test.pcap` file, don't try to decode:
+Capture packets from `nRF Sniffer 4` on `/dev/ttyUSB0` port and save the captured packets with the `LINKTYPE_BLUETOOTH_LE_LL` packet header to `test.pcap` file, don't try to decode:
 ```
-$ ./bsniffhub -s N -p /dev/ttyUSB0 -l 251 -n -w test.pcap
+$ ./bsniffhub -s N4 -p /dev/ttyUSB0 -l 251 -n -w test.pcap
 ```
 Run Wireshark, open `input.pcap` file and feed the packets with the `LINKTYPE_BLUETOOTH_LE_LL_WITH_PHDR` packet header to `Wireshark`:
 ```
