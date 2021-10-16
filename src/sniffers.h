@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2020 Vladimir Alemasov
+* Copyright (c) 2020, 2021 Vladimir Alemasov
 * All rights reserved
 *
 * This program and the accompanying materials are distributed under
@@ -16,9 +16,12 @@
 #define SNIFFERS_H_
 
 //--------------------------------------------
+#define MAX_ID_LENGTH        10
+
+//--------------------------------------------
 typedef struct sniffer
 {
-	char id;
+	char id[MAX_ID_LENGTH];
 	port_settings_t sets;
 	void(*init)(HANDLE hndl);
 	int(*decode)(uint8_t *buf, size_t len, ble_info_t **pkt_info);
@@ -38,6 +41,6 @@ typedef struct sniffer
 	const sniffer_t *sniffers[] = { __VA_ARGS__, NULL }
 
 //--------------------------------------------
-const sniffer_t *get_sniffer(char id);
+const sniffer_t *get_sniffer(char *id);
 
 #endif /* SNIFFERS_H_ */

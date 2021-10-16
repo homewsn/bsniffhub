@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2020 Vladimir Alemasov
+* Copyright (c) 2020, 2021 Vladimir Alemasov
 * All rights reserved
 *
 * This program and the accompanying materials are distributed under
@@ -86,9 +86,10 @@ static void list_iface_load(void)
 static void list_sniff_load(void)
 {
 	list_lstbox_init(&list_sniff);
-	list_lstbox_add(&list_sniff, "S", "Sniffle v1.4");
-	list_lstbox_add(&list_sniff, "N", "nRF Sniffer v3.x.x");
-	list_lstbox_add(&list_sniff, "T", "SmartRF Packet Sniffer 2 v1.8.0");
+	list_lstbox_add(&list_sniff, "S", "Sniffle v1.6");
+	list_lstbox_add(&list_sniff, "N3", "nRF Sniffer v3.x.x");
+	list_lstbox_add(&list_sniff, "N4", "nRF Sniffer v4.0.0");
+	list_lstbox_add(&list_sniff, "T", "SmartRF Packet Sniffer 2 v1.9.0");
 }
 
 //--------------------------------------------
@@ -98,6 +99,7 @@ static void list_baudr_load(void)
 	list_lstbox_add(&list_baudr, "921600", "921600");
 	list_lstbox_add(&list_baudr, "1000000", "1000000");
 	list_lstbox_add(&list_baudr, "2000000", "2000000");
+	list_lstbox_add(&list_baudr, "3000000", "3000000");
 }
 
 //--------------------------------------------
@@ -132,7 +134,7 @@ static void lst_load(Ihandle *ih, list_lstbox_t **list, int next)
 static int lst_sniff_action_cb(Ihandle *ih, char *text, int item, int state)
 {
 	char *name = list_lstbox_find_devname_by_id(&list_sniff, IupGetInt(lst_sniff, "VALUE"));
-	const sniffer_t *sniff = get_sniffer(name[0]);
+	const sniffer_t *sniff = get_sniffer(name);
 	if (sniff)
 	{
 		char baudr[10];
@@ -639,7 +641,7 @@ static int btn_about_action_cb(Ihandle* ih)
 	IupSetAttribute(sep, "EXPAND", "HORIZONTAL");
 	IupSetAttribute(sep, "STYLE", "LINE");
 	IupSetAttribute(sep, "BARSIZE", "16");
-	Ihandle *lbl_2 = IupLabel("Copyright (c) 2020 Vladimir Alemasov");
+	Ihandle *lbl_2 = IupLabel("Copyright (c) 2020, 2021 Vladimir Alemasov");
 	Ihandle *lbl_3 = IupLabel("TinyCrypt - Copyright (c) 2017, Intel Corporation");
 	Ihandle *lbl_4 = IupLabel("IUP - Copyright (c) 1994-2020 Tecgraf/PUC-Rio");
 	Ihandle *lbl_5 = IupLabel("Icon - Copyright (c) Hopstarter (Jojo Mendoza)");

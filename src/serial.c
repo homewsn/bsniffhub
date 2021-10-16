@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2019, 2020 Vladimir Alemasov
+* Copyright (c) 2019 - 2021 Vladimir Alemasov
 * All rights reserved
 *
 * This program and the accompanying materials are distributed under
@@ -20,6 +20,7 @@
 #include <errno.h>      /* errno */
 #include <stdlib.h>     /* size_t */
 #include <unistd.h>     /* read, close */
+#include <sys/ioctl.h>  /* ioctl */
 #include <dirent.h>     /* struct dirent */
 #include <sys/stat.h>   /* lstat, S_ISLNK */
 #include <libgen.h>     /* basename */
@@ -61,7 +62,6 @@
 #endif
 
 #ifdef _WIN32
-
 //--------------------------------------------
 int serial_open(const char *name, const port_settings_t *set, HANDLE *dev)
 {
@@ -98,6 +98,7 @@ int serial_open(const char *name, const port_settings_t *set, HANDLE *dev)
 	dcb.fBinary = TRUE;
 	dcb.ByteSize = 8;
 	dcb.BaudRate = set->baudrate;
+	dcb.fDtrControl = 1;  // Enable DTR pin
 	if (set->flow_control)
 	{
 		dcb.fOutxCtsFlow = TRUE;
@@ -143,6 +144,7 @@ void serial_close(HANDLE dev)
 
 	if (GetHandleInformation(dev, &dwFlags))
 	{
+		// DTR pin is cleared automatically in the CloseHandle() function below
 		CloseHandle(dev);
 	}
 }
@@ -236,7 +238,6 @@ void serial_enum(list_lstbox_t **list)
 }
 
 #else
-
 //--------------------------------------------
 int serial_open(const char *name, const port_settings_t *set, HANDLE *dev)
 {
@@ -247,6 +248,7 @@ int serial_open(const char *name, const port_settings_t *set, HANDLE *dev)
 	assert(set);
 	assert(dev);
 
+	// DTR pin is enabled automatically in the open() function below
 	*dev = open(name, O_RDWR | O_NOCTTY | O_NONBLOCK);
 	if (*dev == -1)
 	{
@@ -312,7 +314,12 @@ void serial_flush(HANDLE dev)
 //--------------------------------------------
 void serial_close(HANDLE dev)
 {
+	int DTR_flag;
+
 	serial_flush(dev);
+	DTR_flag = TIOCM_DTR;
+	// Clear DTR pin if it's not cleared automatically in the close() function below
+	ioctl(dev, TIOCMBIC, &DTR_flag);
 	close(dev);
 }
 

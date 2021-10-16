@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2020 Vladimir Alemasov
+* Copyright (c) 2020, 2021 Vladimir Alemasov
 * All rights reserved
 *
 * This program and the accompanying materials are distributed under 
@@ -34,7 +34,7 @@ typedef struct pcap_bluetooth_le_ll_header
 } pcap_bluetooth_le_ll_header_t;
 
 //--------------------------------------------
-typedef struct pcap_nordic_ble_type2_header
+typedef struct pcap_nordic_ble_header
 {
 	uint8_t board;
 	uint16_t payload_length;
@@ -46,8 +46,12 @@ typedef struct pcap_nordic_ble_type2_header
 	uint8_t channel;
 	int8_t rssi;
 	uint16_t event_counter;
-	uint32_t delta_time;
-} pcap_nordic_ble_type2_header_t;
+	union
+	{
+		uint32_t type2_delta_time;
+		uint32_t type3_timestamp;
+	};
+} pcap_nordic_ble_header_t;
 
 #pragma pack(pop)
 

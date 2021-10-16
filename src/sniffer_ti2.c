@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2020 Vladimir Alemasov
+* Copyright (c) 2020, 2021 Vladimir Alemasov
 * All rights reserved
 *
 * This program and the accompanying materials are distributed under
@@ -29,7 +29,7 @@
 // SmartRF Packet Sniffer 2 is a sniffer for Bluetooth 4.x (LE) using TI CC13xx/CC26xx hardware
 // http://www.ti.com/tool/PACKET-SNIFFER
 // Decryption of encrypted packets is not supported.
-// TI SmartRF Packet Sniffer 2 v1.8.0 firmware.
+// TI SmartRF Packet Sniffer 2 v1.9.0 firmware.
 //--------------------------------------------
 // Layout of the Command and Command Response messages:
 //  0   |  1   |      2      |   3   |   4   | ...  | n + 4 | n + 5 | n + 6 | n + 7 |
@@ -69,8 +69,8 @@
 #define CC1352R                         0x30
 #define CC1352P                         0x50
 #define CC26X2R_BLE_PHY                 0x01
-#define CC1352R_BLE_PHY                 0x05
-#define CC1352P_BLE_PHY                 0x09
+#define CC1352R_BLE_PHY                 0x0E
+#define CC1352P_BLE_PHY                 0x12
 
 //--------------------------------------------
 static const uint8_t cmd_ping[] = CMD_PING;
@@ -83,8 +83,8 @@ static const uint8_t cmd_start[] = CMD_START;
 //--------------------------------------------
 typedef enum
 {
-	SENT_CMD_PING,
 	SENT_CMD_STOP,
+	SENT_CMD_PING,
 	SENT_CMD_CFG_PHY,
 	SENT_CMD_CFG_FREQUENCY,
 	SENT_CMD_CFG_BLE_INITIATOR_ADDRESS,
@@ -92,7 +92,7 @@ typedef enum
 } sniff_last_cmd_t;
 
 //--------------------------------------------
-static sniff_last_cmd_t last_cmd = SENT_CMD_PING;
+static sniff_last_cmd_t last_cmd = SENT_CMD_STOP;
 static HANDLE dev;
 static int8_t ble_phy;
 static uint8_t initiator_address[DEVICE_ADDRESS_LENGTH] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
@@ -118,6 +118,11 @@ static void command_send(uint8_t *buf, size_t len)
 {
 	switch (last_cmd)
 	{
+	case SENT_CMD_STOP:
+		assert(len == 9);
+		serial_write(dev, cmd_ping, sizeof(cmd_ping));
+		last_cmd = SENT_CMD_PING;
+		break;
 	case SENT_CMD_PING:
 		assert(len == 15);
 		switch (buf[9])
@@ -142,20 +147,15 @@ static void command_send(uint8_t *buf, size_t len)
 				// msg to CLI thread => phy
 				msg_to_cli_add_print_command("%s", "TI SmartRF Packet Sniffer 2 hardware detected.\n");
 			}
-			serial_write(dev, cmd_stop, sizeof(cmd_stop));
-			last_cmd = SENT_CMD_STOP;
+			cmd_cfg_phy[5] = ble_phy;
+			cmd_cfg_phy[6] = fcs_calc(&cmd_cfg_phy[2], 4);
+			serial_write(dev, cmd_cfg_phy, sizeof(cmd_cfg_phy));
+			last_cmd = SENT_CMD_CFG_PHY;
 		}
 		else
 		{
 			msg_to_cli_add_print_command("%s", "TI SmartRF Packet Sniffer 2 hardware is incompatible with BLE sniffing.\n");
 		}
-		break;
-	case SENT_CMD_STOP:
-		assert(len == 9);
-		cmd_cfg_phy[5] = ble_phy;
-		cmd_cfg_phy[6] = fcs_calc(&cmd_cfg_phy[2], 4);
-		serial_write(dev, cmd_cfg_phy, sizeof(cmd_cfg_phy));
-		last_cmd = SENT_CMD_CFG_PHY;
 		break;
 	case SENT_CMD_CFG_PHY:
 		assert(len == 9);
@@ -278,8 +278,8 @@ static void init(HANDLE hndl)
 	timestamp_initial_us = 0;
 	hello = 0;
 	dev = hndl;
-	serial_write(dev, cmd_ping, sizeof(cmd_ping));
-	last_cmd = SENT_CMD_PING;
+	serial_write(dev, cmd_stop, sizeof(cmd_stop));
+	last_cmd = SENT_CMD_STOP;
 }
 
 //--------------------------------------------
@@ -375,4 +375,4 @@ static void close_free(void)
 }
 
 //--------------------------------------------
-SNIFFER(sniffer_ti2, 'T', 921600, 0, init, serial_packet_decode, follow, NULL, NULL, NULL, close_free);
+SNIFFER(sniffer_ti2, "T", 3000000, 0, init, serial_packet_decode, follow, NULL, NULL, NULL, close_free);

@@ -28,9 +28,9 @@
 //--------------------------------------------
 // nRF Sniffer for Bluetooth LE
 // nRF Sniffer for Bluetooth LE is a sniffer for Bluetooth 5 and 4.x (LE) using nRF52840 hardware
-// https://www.nordicsemi.com/Software-and-tools/Development-Tools/nRF-Sniffer-for-Bluetooth-LE
+// https://www.nordicsemi.com/Products/Development-tools/nrf-sniffer-for-bluetooth-le
 // Decryption of encrypted packets is supported (Passkey or OOB key is needed).
-// nRF Sniffer for Bluetooth LE 3 firmware (UART protocol version 2).
+// nRF Sniffer for Bluetooth LE 4 firmware (UART protocol version 3).
 //--------------------------------------------
 // Layout of the decoded message:
 //   0    |   1   |         2        |   3   |   4    |      5      | ...  | n + 5 |
@@ -41,22 +41,28 @@
 // [BLE packet header][BLE packet]
 //--------------------------------------------
 // Layout of the BLE packet header:
-//       0       |   1   |    2    |  3   |   4   |   5   | 6 | 7 | 8 | 9 |
-//      0x0A     |       |         |      |               |               |
-// Header Length | Flags | Channel | RSSI | Event Counter |   Time Diff   |
+//       0       |   1   |    2    |  3   |   4   |   5   |  6  |  7  |  8  |  9  |
+//      0x0A     |       |         |      |               |                       |
+// Header Length | Flags | Channel | RSSI | Event Counter |   Timestamp LE, us    |
 //--------------------------------------------
-// Layout of the BLE packet:
-// {AA x 4}[HEADER][LEN][PADDING]{ PAYLOAD x LEN } {CRC x 3}
+// Layout of the BLE packet (Uncoded PHY):
+// {AA x 4}[HEADER][LEN][PADDING]{PAYLOAD x LEN}{CRC x 3}
+// Note: Padding byte is added by radio and is not received on air. It should be removed after reception on UART.
+// Layout of the BLE packet (Coded PHY):
+// {AA x 4}[CI][HEADER][LEN][PADDING]{PAYLOAD x LEN}{CRC x 3}
 // Note: Padding byte is added by radio and is not received on air. It should be removed after reception on UART.
 
 //--------------------------------------------
 #define MAX_MSG_SIZE                    SERIAL_BUF_SIZE
 #define MSG_HEADER_SIZE                 6
+#define TS_WRAP_PERIOD                  0x100000000
 
+//--------------------------------------------
 #define REQ_FOLLOW                      0x00
 #define EVENT_FOLLOW                    0x01
+#define EVENT_PACKET_ADVERTISING        0x02
 #define EVENT_CONNECT                   0x05
-#define EVENT_PACKET                    0x06
+#define EVENT_PACKET_DATA               0x06
 #define REQ_SCAN_CONT                   0x07
 #define EVENT_DISCONNECT                0x09
 #define SET_TEMPORARY_KEY               0x0C
@@ -64,6 +70,7 @@
 #define PING_RESP                       0x0E
 #define SET_ADV_CHANNEL_HOP_SEQ         0x17
 
+//--------------------------------------------
 #define SLIP_START                      0xAB
 #define SLIP_END                        0xBC
 #define SLIP_ESC                        0xCD
@@ -88,7 +95,7 @@ static HANDLE dev;
 static uint8_t cmd_buf[MAX_MSG_SIZE];
 static uint16_t host_to_sniffer_msg_cnt;
 static list_adv_t *adv_devs;
-static uint64_t timestamp_us;
+static uint64_t timestamp_initial_us;
 
 //--------------------------------------------
 static int slip_encode(uint8_t *dst, const uint8_t *src, size_t src_len)
@@ -233,14 +240,15 @@ static int command_set_adv_channel_hop_seq_v1_send(const uint8_t *adv_chans, uin
 static int command_req_scan_cont_v1_send(void)
 {
 	int res;
-	uint8_t buf[6];
+	uint8_t buf[7];
 
 	buf[0] = 6; // Header length
-	buf[1] = 0; // Payload length
+	buf[1] = 1; // Payload length
 	buf[2] = 1; // UART protocol version used
 	buf[3] = host_to_sniffer_msg_cnt & 0xFF; // Packet Counter (LSB)
 	buf[4] = host_to_sniffer_msg_cnt >> 8;
 	buf[5] = REQ_SCAN_CONT; // Packet type
+	buf[6] = 0x03; // 0b011: scan_coded=false, find_aux=true, find_scan_rsp=true
 	res = slip_encode(cmd_buf, buf, sizeof(buf));
 	host_to_sniffer_msg_cnt++;
 	return serial_write(dev, cmd_buf, res);
@@ -313,12 +321,14 @@ static void command_send(uint8_t *buf, size_t len)
 }
 
 //--------------------------------------------
-static int packet_decode(uint8_t *buf, size_t len, ble_info_t **info)
+static int packet_decode(uint8_t *buf, size_t len, ble_info_t **info, uint8_t packet_type)
 {
 	uint16_t hdr_length;
 	uint16_t pkt_length;
-	static uint64_t current_packet_transmission_time;
-	static uint64_t previous_packet_transmission_time;
+	uint8_t ci_flag = 0;
+	uint32_t timestamp_us;
+	static uint32_t timestamp_previous_us;
+	static size_t timestamp_wraps;
 
 	pkt_length = buf[0] | ((uint16_t)buf[1] << 8);
 	if (pkt_length > len)
@@ -337,12 +347,25 @@ static int packet_decode(uint8_t *buf, size_t len, ble_info_t **info)
 	}
 	memset(*info, 0, sizeof(ble_info_t));
 
-	(*info)->size = pkt_length - hdr_length - 1;
-	if (((*info)->buf = (uint8_t *)malloc((*info)->size)) == NULL)
+	timestamp_us = (uint32_t)buf[MSG_HEADER_SIZE + 6] | ((uint32_t)buf[MSG_HEADER_SIZE + 7] << 8) |
+		((uint32_t)buf[MSG_HEADER_SIZE + 8] << 16) | ((uint32_t)buf[MSG_HEADER_SIZE + 9] << 24);
+
+	if (!timestamp_initial_us)
 	{
-		free(*info);
-		return -1;
+		timestamp_initial_us = get_usec_since_epoch() - (uint64_t)timestamp_us;
+		timestamp_previous_us = 0;
+		timestamp_wraps = 0;
 	}
+
+	if (timestamp_us < timestamp_previous_us)
+	{
+		timestamp_wraps++;
+	}
+	timestamp_previous_us = timestamp_us;
+
+	(*info)->timestamp = timestamp_initial_us + timestamp_us + (timestamp_wraps * TS_WRAP_PERIOD);
+	(*info)->ts.tv_sec = (long)(((*info)->timestamp) / 1000000);
+	(*info)->ts.tv_usec = (long)(((*info)->timestamp) - (uint64_t)((*info)->ts.tv_sec) * 1000000);
 
 	switch ((buf[MSG_HEADER_SIZE + 1] & 0x70) >> 4)
 	{
@@ -353,14 +376,16 @@ static int packet_decode(uint8_t *buf, size_t len, ble_info_t **info)
 		(*info)->phy = PHY_2M;
 		break;
 	case 2:
-		// not yet supported by nRF sniffer
-		assert(0);
 		(*info)->phy = PHY_CODED;
+		(*info)->ci = (ble_ci_t)buf[MSG_HEADER_SIZE + hdr_length + ACCESS_ADDRESS_LENGTH];
+		ci_flag = 1;
 		break;
 	}
-	current_packet_transmission_time = ble_packet_transmission_time_us_calc(*info);
 
-	(*info)->status_enc = ((buf[MSG_HEADER_SIZE + 1] & 0x04) >> 2) ? ENC_ENCRYPTED : ENC_UNENCRYPTED;
+	if (packet_type == EVENT_PACKET_DATA)
+	{
+		(*info)->status_enc = ((buf[MSG_HEADER_SIZE + 1] & 0x04) >> 2) ? ENC_ENCRYPTED : ENC_UNENCRYPTED;
+	}
 	if ((*info)->status_enc == ENC_ENCRYPTED)
 	{
 		(*info)->status_mic = ((buf[MSG_HEADER_SIZE + 1] & 0x08) >> 3) ? CHECK_OK : CHECK_FAIL;
@@ -369,28 +394,21 @@ static int packet_decode(uint8_t *buf, size_t len, ble_info_t **info)
 	{
 		(*info)->status_mic = CHECK_UNKNOWN;
 	}
-	(*info)->dir = ((buf[MSG_HEADER_SIZE + 1] & 0x02) >> 1) ? DIR_MASTER_SLAVE : DIR_SLAVE_MASTER;
+	if (packet_type == EVENT_PACKET_DATA)
+	{
+		(*info)->dir = ((buf[MSG_HEADER_SIZE + 1] & 0x02) >> 1) ? DIR_MASTER_SLAVE : DIR_SLAVE_MASTER;
+	}
 	(*info)->status_crc = (buf[MSG_HEADER_SIZE + 1] & 0x01) ? CHECK_OK : CHECK_FAIL;
 	(*info)->channel = buf[MSG_HEADER_SIZE + 2];
 	(*info)->rssi = - buf[MSG_HEADER_SIZE + 3]; // nRF sniffer prefers the RSSI value without a minus sign
 	(*info)->counter_conn = buf[MSG_HEADER_SIZE + 4] | (buf[MSG_HEADER_SIZE + 5] << 8);
 
-	if (!timestamp_us)
+	(*info)->size = pkt_length - hdr_length - 1 - ci_flag;
+	if (((*info)->buf = (uint8_t *)malloc((*info)->size)) == NULL)
 	{
-		timestamp_us = get_usec_since_epoch();
-		previous_packet_transmission_time = 0;
+		free(*info);
+		return -1;
 	}
-	else
-	{
-		(*info)->delta_time = (uint32_t)buf[MSG_HEADER_SIZE + 6] | ((uint32_t)buf[MSG_HEADER_SIZE + 7] << 8) |
-			((uint32_t)buf[MSG_HEADER_SIZE + 8] << 16) | ((uint32_t)buf[MSG_HEADER_SIZE + 9] << 24);
-		timestamp_us += previous_packet_transmission_time + (*info)->delta_time;
-	}
-	(*info)->ts.tv_sec = (long)(timestamp_us / 1000000);
-	(*info)->ts.tv_usec = (long)(timestamp_us - (uint64_t)((*info)->ts.tv_sec) * 1000000);
-	(*info)->timestamp = timestamp_us;
-
-	previous_packet_transmission_time = current_packet_transmission_time;
 
 	if (!memcmp(buf + MSG_HEADER_SIZE + hdr_length, &adv_channel_access_address[0], ACCESS_ADDRESS_LENGTH))
 	{
@@ -400,10 +418,14 @@ static int packet_decode(uint8_t *buf, size_t len, ble_info_t **info)
 
 		memcpy((*info)->buf,
 			buf + MSG_HEADER_SIZE + hdr_length,
-			ACCESS_ADDRESS_LENGTH + MINIMUM_HEADER_LENGTH);
+			ACCESS_ADDRESS_LENGTH);
+		// CI byte cutting
+		memcpy((*info)->buf + ACCESS_ADDRESS_LENGTH,
+			buf + MSG_HEADER_SIZE + hdr_length + ACCESS_ADDRESS_LENGTH + ci_flag,
+			MINIMUM_HEADER_LENGTH);
 		// padding byte cutting
 		memcpy((*info)->buf + ACCESS_ADDRESS_LENGTH + MINIMUM_HEADER_LENGTH,
-			buf + MSG_HEADER_SIZE + hdr_length + ACCESS_ADDRESS_LENGTH + MINIMUM_HEADER_LENGTH + 1,
+			buf + MSG_HEADER_SIZE + hdr_length + ACCESS_ADDRESS_LENGTH + ci_flag + MINIMUM_HEADER_LENGTH + 1,
 			(*info)->size - ACCESS_ADDRESS_LENGTH - MINIMUM_HEADER_LENGTH);
 
 		(*info)->dir = DIR_UNKNOWN;
@@ -430,13 +452,17 @@ static int packet_decode(uint8_t *buf, size_t len, ble_info_t **info)
 			free(*info);
 			return -1;
 		}
-		cp_flag = buf[MSG_HEADER_SIZE + hdr_length + ACCESS_ADDRESS_LENGTH] & CP_MASK ? 1 : 0;
+		cp_flag = buf[MSG_HEADER_SIZE + hdr_length + ACCESS_ADDRESS_LENGTH + ci_flag] & CP_MASK ? 1 : 0;
 		memcpy((*info)->buf,
 			buf + MSG_HEADER_SIZE + hdr_length,
-			ACCESS_ADDRESS_LENGTH + MINIMUM_HEADER_LENGTH + cp_flag);
+			ACCESS_ADDRESS_LENGTH);
+		// CI byte cutting
+		memcpy((*info)->buf + ACCESS_ADDRESS_LENGTH,
+			buf + MSG_HEADER_SIZE + hdr_length + ACCESS_ADDRESS_LENGTH + ci_flag,
+			MINIMUM_HEADER_LENGTH + cp_flag);
 		// padding byte cutting
 		memcpy((*info)->buf + ACCESS_ADDRESS_LENGTH + MINIMUM_HEADER_LENGTH + cp_flag,
-			buf + MSG_HEADER_SIZE + hdr_length + ACCESS_ADDRESS_LENGTH + MINIMUM_HEADER_LENGTH + cp_flag + 1,
+			buf + MSG_HEADER_SIZE + hdr_length + ACCESS_ADDRESS_LENGTH + ci_flag + MINIMUM_HEADER_LENGTH + cp_flag + 1,
 			(*info)->size - ACCESS_ADDRESS_LENGTH - MINIMUM_HEADER_LENGTH - cp_flag);
 	}
 	return (int)(*info)->size;
@@ -446,7 +472,7 @@ static int packet_decode(uint8_t *buf, size_t len, ble_info_t **info)
 static void init(HANDLE hndl)
 {
 	list_adv_remove_all(&adv_devs);
-	timestamp_us = 0;
+	timestamp_initial_us = 0;
 	host_to_sniffer_msg_cnt = 0;
 	dev = hndl;
 	command_ping_req_v1_send();
@@ -484,9 +510,9 @@ static int serial_packet_decode(uint8_t *buf, size_t len, ble_info_t **pkt_info)
 			{
 				return -1;
 			}
-			if (msg_buf[5] == EVENT_PACKET && last_cmd == SENT_CMD_REQ_SCAN_CONT)
+			if ((msg_buf[5] == EVENT_PACKET_DATA || msg_buf[5] == EVENT_PACKET_ADVERTISING) && last_cmd == SENT_CMD_REQ_SCAN_CONT)
 			{
-				if ((res = packet_decode(&msg_buf[0], (size_t)res, pkt_info)) < 0)
+				if ((res = packet_decode(&msg_buf[0], (size_t)res, pkt_info, msg_buf[5])) < 0)
 				{
 					return -1;
 				}
@@ -563,4 +589,4 @@ static void close_free(void)
 }
 
 //--------------------------------------------
-SNIFFER(sniffer_nrf3, "N3", 1000000, 1, init, serial_packet_decode, follow, passkey_set, oob_key_set, NULL, close_free);
+SNIFFER(sniffer_nrf4, "N4", 1000000, 1, init, serial_packet_decode, follow, passkey_set, oob_key_set, NULL, close_free);

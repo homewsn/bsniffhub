@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2019 Vladimir Alemasov
+* Copyright (c) 2019 - 2021 Vladimir Alemasov
 * All rights reserved
 *
 * This program and the accompanying materials are distributed under
@@ -181,16 +181,18 @@ size_t pcap_packet_create(uint32_t dlt, ble_info_t *info, uint8_t *packet)
 	}
 	case LINKTYPE_NORDIC_BLE:
 	{
-		pcap_nordic_ble_type2_header_t nordic_hdr = { 0 };
+# if 0
+		// nordic header version = 2
+		pcap_nordic_ble_header_t nordic_hdr = { 0 };
 
 		nordic_hdr.board = 0; //?
 		nordic_hdr.channel = info->channel;
-		nordic_hdr.delta_time = info->delta_time;
+		nordic_hdr.type2_delta_time = info->delta_time;
 		nordic_hdr.event_counter = info->counter_conn;
 		nordic_hdr.packet_counter = info->counter_total;
 		nordic_hdr.packet_id = 6;
 		nordic_hdr.packet_length = 10;
-		nordic_hdr.payload_length = (uint16_t)(info->size + 10);
+		nordic_hdr.payload_length = info->phy == PHY_CODED ? (uint16_t)(info->size + 1 + 10) : (uint16_t)(info->size + 10);
 		nordic_hdr.protocol_version = 2;
 		nordic_hdr.rssi = -info->rssi; // Nordic prefers the RSSI value without a minus sign
 
@@ -211,9 +213,86 @@ size_t pcap_packet_create(uint32_t dlt, ble_info_t *info, uint8_t *packet)
 			break;
 		}
 
-		memcpy(packet, &nordic_hdr, sizeof(pcap_nordic_ble_type2_header_t));
-		memcpy(packet + sizeof(pcap_nordic_ble_type2_header_t), info->buf, info->size);
-		return (sizeof(pcap_nordic_ble_type2_header_t) + info->size);
+		memcpy(packet, &nordic_hdr, sizeof(pcap_nordic_ble_header_t));
+		if (info->phy == PHY_CODED)
+		{
+			memcpy(packet + sizeof(pcap_nordic_ble_header_t), info->buf, ACCESS_ADDRESS_LENGTH);
+			if (info->ci == CI_S2)
+			{
+				*(packet + sizeof(pcap_nordic_ble_header_t) + ACCESS_ADDRESS_LENGTH) = 0x01; // Coding Indicator = FEC Block 2 coded using S=2 (1)
+			}
+			else
+			{
+				*(packet + sizeof(pcap_nordic_ble_header_t) + ACCESS_ADDRESS_LENGTH) = 0x00; // Coding Indicator = FEC Block 2 coded using S=8 (0)
+			}
+			memcpy(packet + sizeof(pcap_nordic_ble_header_t) + ACCESS_ADDRESS_LENGTH + 1, info->buf + ACCESS_ADDRESS_LENGTH, info->size - ACCESS_ADDRESS_LENGTH);
+			return (sizeof(pcap_nordic_ble_header_t) + info->size + 1);
+		}
+		else
+		{
+			memcpy(packet + sizeof(pcap_nordic_ble_header_t), info->buf, info->size);
+			return (sizeof(pcap_nordic_ble_header_t) + info->size);
+		}
+#else
+		// nordic header version = 3
+		pcap_nordic_ble_header_t nordic_hdr = { 0 };
+
+		nordic_hdr.board = 0; //?
+		nordic_hdr.channel = info->channel;
+		nordic_hdr.type3_timestamp = (uint32_t)info->timestamp;
+		nordic_hdr.event_counter = info->counter_conn;
+		nordic_hdr.packet_counter = info->counter_total;
+		if (info->pdu == PDU_DATA)
+		{
+			nordic_hdr.packet_id = 6;
+		}
+		else
+		{
+			nordic_hdr.packet_id = 2;
+		}
+		nordic_hdr.packet_length = 10;
+		nordic_hdr.payload_length = info->phy == PHY_CODED ? (uint16_t)(info->size + 1 + 10) : (uint16_t)(info->size + 10);
+		nordic_hdr.protocol_version = 3;
+		nordic_hdr.rssi = -info->rssi; // Nordic prefers the RSSI value without a minus sign
+
+		nordic_hdr.flags |= info->status_crc == CHECK_OK ? 0x01 : 0x00;
+		nordic_hdr.flags |= info->dir == DIR_MASTER_SLAVE ? 0x02 : 0x00;
+		nordic_hdr.flags |= (info->status_enc == ENC_ENCRYPTED || info->status_enc == ENC_DECRYPTED) ? 0x04 : 0x00;
+		nordic_hdr.flags |= (info->status_mic == CHECK_OK) ? 0x08 : 0x00;
+		switch (info->phy)
+		{
+		case PHY_1M:
+		default:
+			break;
+		case PHY_2M:
+			nordic_hdr.flags |= 0x10;
+			break;
+		case PHY_CODED:
+			nordic_hdr.flags |= 0x20;
+			break;
+		}
+
+		memcpy(packet, &nordic_hdr, sizeof(pcap_nordic_ble_header_t));
+		if (info->phy == PHY_CODED)
+		{
+			memcpy(packet + sizeof(pcap_nordic_ble_header_t), info->buf, ACCESS_ADDRESS_LENGTH);
+			if (info->ci == CI_S2)
+			{
+				*(packet + sizeof(pcap_nordic_ble_header_t) + ACCESS_ADDRESS_LENGTH) = 0x01; // Coding Indicator = FEC Block 2 coded using S=2 (1)
+			}
+			else
+			{
+				*(packet + sizeof(pcap_nordic_ble_header_t) + ACCESS_ADDRESS_LENGTH) = 0x00; // Coding Indicator = FEC Block 2 coded using S=8 (0)
+			}
+			memcpy(packet + sizeof(pcap_nordic_ble_header_t) + ACCESS_ADDRESS_LENGTH + 1, info->buf + ACCESS_ADDRESS_LENGTH, info->size - ACCESS_ADDRESS_LENGTH);
+			return (sizeof(pcap_nordic_ble_header_t) + info->size + 1);
+		}
+		else
+		{
+			memcpy(packet + sizeof(pcap_nordic_ble_header_t), info->buf, info->size);
+			return (sizeof(pcap_nordic_ble_header_t) + info->size);
+		}
+#endif
 	}
 	}
 	assert(0);
@@ -253,6 +332,7 @@ ble_info_t *pcap_packet_parse(uint32_t dlt, const struct pcap_pkthdr *header, co
 	case LINKTYPE_BLUETOOTH_LE_LL_WITH_PHDR:
 	{
 		pcap_bluetooth_le_ll_header_t *ble_ll_hdr = (pcap_bluetooth_le_ll_header_t *)packet;
+
 		header_len = sizeof(pcap_bluetooth_le_ll_header_t);
 		info->channel = rf2ble_channel(ble_ll_hdr->rf_channel);
 		info->rssi = ble_ll_hdr->signal_power;
@@ -276,10 +356,11 @@ ble_info_t *pcap_packet_parse(uint32_t dlt, const struct pcap_pkthdr *header, co
 			info->status_mic = (ble_ll_hdr->flags & 0x2000) ? CHECK_OK : CHECK_FAIL;
 		}
 		info->status_enc = (ble_ll_hdr->flags & 0x0008) ? ENC_DECRYPTED : ENC_UNKNOWN;
+		info->size = header->caplen - header_len;
 		info->phy = ble_ll_hdr->flags >> 14;
 		if (info->phy == PHY_CODED)
 		{
-			info->size = header->caplen - header_len - 1;
+			info->size -= 1;
 			if ((info->buf = (uint8_t *)malloc(info->size)) == NULL)
 			{
 				free(info);
@@ -290,35 +371,25 @@ ble_info_t *pcap_packet_parse(uint32_t dlt, const struct pcap_pkthdr *header, co
 			memcpy(info->buf + ACCESS_ADDRESS_LENGTH, packet + header_len + ACCESS_ADDRESS_LENGTH + 1, info->size - ACCESS_ADDRESS_LENGTH);
 			return info;
 		}
-		info->size = header->caplen - header_len;
 		break;
 	}
 	case LINKTYPE_NORDIC_BLE:
 	{
-		static uint64_t timestamp_us;
-		uint64_t current_packet_transmission_time;
-		static uint64_t previous_packet_transmission_time;
-		pcap_nordic_ble_type2_header_t *nordic_hdr = (pcap_nordic_ble_type2_header_t *)packet;
+		pcap_nordic_ble_header_t *nordic_hdr = (pcap_nordic_ble_header_t *)packet;
 
-		header_len = sizeof(pcap_nordic_ble_type2_header_t);
+		header_len = sizeof(pcap_nordic_ble_header_t);
 		info->status_crc = (nordic_hdr->flags & 0x01) ? CHECK_OK : CHECK_FAIL;
 		info->dir = (nordic_hdr->flags & 0x02) ? DIR_MASTER_SLAVE : DIR_SLAVE_MASTER;
 		info->status_enc = (nordic_hdr->flags & 0x04) ? ENC_DECRYPTED : ENC_UNKNOWN;
 		info->status_mic = (nordic_hdr->flags & 0x08) ? CHECK_OK : CHECK_FAIL;
-		if (packet_cnt == 1)
-		{
-			timestamp_us = start_timestamp;
-			previous_packet_transmission_time = 0;
-		}
-		else
-		{
-			info->delta_time = nordic_hdr->delta_time;
-		}
 		if (info->status_enc == ENC_DECRYPTED && info->status_mic == CHECK_FAIL)
 		{
 			info->status_enc = ENC_ENCRYPTED;
 		}
-
+		info->rssi = nordic_hdr->rssi;
+		info->channel = nordic_hdr->channel;
+		info->counter_conn = nordic_hdr->event_counter;
+		info->size = header->caplen - header_len;
 		switch ((nordic_hdr->flags & 0x70) >> 4)
 		{
 		case 0:
@@ -329,17 +400,41 @@ ble_info_t *pcap_packet_parse(uint32_t dlt, const struct pcap_pkthdr *header, co
 			break;
 		case 2:
 			info->phy = PHY_CODED;
+			info->size -= 1;
 			break;
 		}
-		info->size = header->caplen - header_len;
-		current_packet_transmission_time = ble_packet_transmission_time_us_calc(info);
+		if (nordic_hdr->protocol_version <= 2)
+		{
+			static uint64_t timestamp_us;
+			uint64_t current_packet_transmission_time;
+			static uint64_t previous_packet_transmission_time;
 
-		info->rssi = nordic_hdr->rssi;
-		info->channel = nordic_hdr->channel;
-		info->counter_conn = nordic_hdr->event_counter;
-		timestamp_us += previous_packet_transmission_time + info->delta_time;
-		info->timestamp = timestamp_us;
-		previous_packet_transmission_time = current_packet_transmission_time;
+			current_packet_transmission_time = ble_packet_transmission_time_us_calc(info);
+			if (packet_cnt == 1)
+			{
+				timestamp_us = start_timestamp;
+				previous_packet_transmission_time = 0;
+			}
+			else
+			{
+				info->delta_time = nordic_hdr->type2_delta_time;
+			}
+			timestamp_us += previous_packet_transmission_time + info->delta_time;
+			info->timestamp = timestamp_us;
+			previous_packet_transmission_time = current_packet_transmission_time;
+		}
+		if (info->phy == PHY_CODED)
+		{
+			if ((info->buf = (uint8_t *)malloc(info->size)) == NULL)
+			{
+				free(info);
+				return NULL;
+			}
+			memcpy(info->buf, packet + header_len, ACCESS_ADDRESS_LENGTH);
+			info->ci = *(packet + header_len + ACCESS_ADDRESS_LENGTH);
+			memcpy(info->buf + ACCESS_ADDRESS_LENGTH, packet + header_len + ACCESS_ADDRESS_LENGTH + 1, info->size - ACCESS_ADDRESS_LENGTH);
+			return info;
+		}
 		break;
 	}
 	default:

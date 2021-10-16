@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2020 Vladimir Alemasov
+* Copyright (c) 2020, 2021 Vladimir Alemasov
 * All rights reserved
 *
 * This program and the accompanying materials are distributed under
@@ -30,13 +30,12 @@
 // Sniffle is a sniffer for Bluetooth 5 and 4.x (LE) using TI CC1352/CC26x2 hardware
 // https://github.com/nccgroup/Sniffle
 // Decryption of encrypted packets is not supported.
-// Sniffle v1.4 firmware.
+// Sniffle v1.6 firmware.
 //--------------------------------------------
 // Layout of the decoded message:
-//    0    | 1  | 2  | 3 | 4  | 5 | 6       |       6       |  7   |      8      | ... | n + 8 |
-//                                  xxxxxxx         x
-//         |                  |   n         |               |      |             |             |
-// MsgType | Timestamp LE, us | Length      | direction bit | RSSI | Channel/Phy |     Data    |
+//            0            |    1    | 2  | 3  | 4 | 5  |    6    |   7    |     8   |   9    |  10  |     11      | ... | n + 12 |
+//                         |         |                  |         n        |                  |      |             |              |
+// Number of 4-byte chunks | MsgType | Timestamp LE, us | Length/Direction | Conn event count | RSSI | Channel/Phy |     Data     |
 
 //--------------------------------------------
 #define MAX_MSG_SIZE            SERIAL_BUF_SIZE
@@ -52,6 +51,13 @@
 #define COMMAND_AUXADV          0x16
 #define COMMAND_RESET           0x17
 #define COMMAND_MARKER          0x18
+
+//--------------------------------------------
+#define MESSAGE_BLEFRAME        0x10
+#define MESSAGE_DEBUG           0x11
+#define MESSAGE_MARKER          0x12
+#define MESSAGE_STATE           0x13
+#define MESSAGE_MEASURE         0x14
 
 //--------------------------------------------
 static HANDLE dev;
@@ -208,19 +214,17 @@ static int packet_decode(uint8_t *buf, size_t len, ble_info_t **info)
 	uint32_t timestamp_us;
 	uint16_t length;
 
-	switch (*buf)
+	switch (buf[1])
 	{
-	case 0x10:
-		// packet message
+	case MESSAGE_BLEFRAME:
 		break;
-	case 0x11:
-		// debug message
+	case MESSAGE_DEBUG:
 		return 0;
-	case 0x12:
-		// marker message
+	case MESSAGE_MARKER:
 		return 0;
-	case 0x13:
-		// state message
+	case MESSAGE_STATE:
+		return 0;
+	case MESSAGE_MEASURE:
 		return 0;
 	default:
 		// unknown message
@@ -229,8 +233,8 @@ static int packet_decode(uint8_t *buf, size_t len, ble_info_t **info)
 #endif
 		return 0;
 	}
-	length = *(buf + 5) | (((*(buf + 6)) & 0x7F) << 8);
-	if (length != len - 9)
+	length = *(buf + 6) | (((*(buf + 7)) & 0x7F) << 8);
+	if (length != len - 12)
 	{
 		return -1;
 	}
@@ -241,7 +245,7 @@ static int packet_decode(uint8_t *buf, size_t len, ble_info_t **info)
 	}
 	memset(*info, 0, sizeof(ble_info_t));
 
-	timestamp_us = (uint32_t)buf[1] | ((uint32_t)buf[2] << 8) | ((uint32_t)buf[3] << 16) | ((uint32_t)buf[4] << 24);
+	timestamp_us = (uint32_t)buf[2] | ((uint32_t)buf[3] << 8) | ((uint32_t)buf[4] << 16) | ((uint32_t)buf[5] << 24);
 
 	if (!timestamp_initial_us)
 	{
@@ -264,13 +268,13 @@ static int packet_decode(uint8_t *buf, size_t len, ble_info_t **info)
 	(*info)->ts.tv_sec = (long)(((*info)->timestamp) / 1000000);
 	(*info)->ts.tv_usec = (long)(((*info)->timestamp) - (uint64_t)((*info)->ts.tv_sec) * 1000000);
 
-	(*info)->dir = ((*(buf + 6) & 0x80) >> 7) ? DIR_SLAVE_MASTER : DIR_MASTER_SLAVE;
+	(*info)->dir = ((*(buf + 7) & 0x80) >> 7) ? DIR_SLAVE_MASTER : DIR_MASTER_SLAVE;
 	(*info)->size = length + ACCESS_ADDRESS_LENGTH + CRC_LENGTH;
-	(*info)->rssi = *(buf + 7); // RSSI value with a minus sign
+	(*info)->rssi = *(buf + 10); // RSSI value with a minus sign
 	(*info)->status_crc = CHECK_OK;
 	(*info)->status_mic = CHECK_UNKNOWN;
 	(*info)->status_enc = ENC_UNKNOWN;
-	switch ((*(buf + 8) >> 6))
+	switch ((*(buf + 11) >> 6))
 	{
 	case 0:
 		(*info)->phy = PHY_1M;
@@ -280,16 +284,21 @@ static int packet_decode(uint8_t *buf, size_t len, ble_info_t **info)
 		break;
 	case 2:
 		(*info)->phy = PHY_CODED;
+		(*info)->ci = CI_S8;
+		break;
+	case 3:
+		(*info)->phy = PHY_CODED;
+		(*info)->ci = CI_S2;
 		break;
 	}
-	(*info)->channel = (*(buf + 8) & 0x3F);
+	(*info)->channel = (*(buf + 11) & 0x3F);
 
 	if (((*info)->buf = (uint8_t *)malloc((*info)->size)) == NULL)
 	{
 		free(*info);
 		return -1;
 	}
-	memcpy((*info)->buf + ACCESS_ADDRESS_LENGTH, buf + 9, (*info)->size - ACCESS_ADDRESS_LENGTH - CRC_LENGTH);
+	memcpy((*info)->buf + ACCESS_ADDRESS_LENGTH, buf + 12, (*info)->size - ACCESS_ADDRESS_LENGTH - CRC_LENGTH);
 
 	if ((*info)->channel >= 37)
 	{
@@ -446,4 +455,4 @@ static void close_free(void)
 }
 
 //--------------------------------------------
-SNIFFER(sniffer_sniffle, 'S', 2000000, 0, init, serial_packet_decode, follow, NULL, NULL, NULL, close_free);
+SNIFFER(sniffer_sniffle, "S", 2000000, 0, init, serial_packet_decode, follow, NULL, NULL, NULL, close_free);

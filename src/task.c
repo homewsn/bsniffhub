@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2020 Vladimir Alemasov
+* Copyright (c) 2020, 2021 Vladimir Alemasov
 * All rights reserved
 *
 * This program and the accompanying materials are distributed under
@@ -49,9 +49,10 @@ void print_usage(void)
 #endif
 	printf("Mandatory arguments for sniffer device input:\n");
 	printf("  -s <sniffer>       Sniffer device:\n");
-	printf("                     'N' - nRF Sniffer v3.x.x\n");
-	printf("                     'T' - SmartRF Packet Sniffer 2 v1.8.0\n");
-	printf("                     'S' - Sniffle v1.4\n");
+	printf("                     'N3' - nRF Sniffer v3.x.0\n");
+	printf("                     'N4' - nRF Sniffer v4.0.0\n");
+	printf("                     'T' - SmartRF Packet Sniffer 2 v1.9.0\n");
+	printf("                     'S' - Sniffle v1.6\n");
 	printf("  -p <serport>       Serial port name\n\n");
 	printf("Optional argument for sniffer device input:\n");
 	printf("  -b <baudrate>      Serial port baudrate (def: from sniffer guide)\n\n");
@@ -69,14 +70,14 @@ void print_usage(void)
 	printf("\nExamples:\n");
 	printf("  bsniffhub -s T -p COM5\n");
 	printf("  bsniffhub -s S -p COM40 -b 1000000 -W D:\\Wireshark\\Wireshark.exe\n");
-	printf("  bsniffhub -s N -p COM22 -l 251 -n -w C:\\PCAP files\\test.pcap\n");
+	printf("  bsniffhub -s N4 -p COM22 -l 251 -n -w C:\\PCAP files\\test.pcap\n");
 	printf("  bsniffhub -r input.pcap\n");
 	printf("  bsniffhub -r C:\\PCAP files\\input.pcap -l 272 -w C:\\PCAP files\\output.pcap\n");
 #else
 	printf("\nExamples:\n");
 	printf("  ./bsniffhub -s T -p /dev/ttyUSB2\n");
 	printf("  ./bsniffhub -s S -p /dev/ttyUSB0 -b 1000000\n");
-	printf("  ./bsniffhub -s N -p /dev/ttyUSB2 -l 251 -n -w test.pcap\n");
+	printf("  ./bsniffhub -s N4 -p /dev/ttyUSB2 -l 251 -n -w test.pcap\n");
 	printf("  ./bsniffhub -r input.pcap\n");
 	printf("  ./bsniffhub -r input/input.pcap -l 256 -w output/output.pcap\n");
 #endif
@@ -128,13 +129,13 @@ int task_start(task_settings_t *ts, int gui)
 		{
 			baudr = atoi(ts->opt_b_arg);
 		}
-		if (!get_sniffer(*ts->opt_s_arg))
+		if (!get_sniffer(ts->opt_s_arg))
 		{
 			printf("This -s option argument is not supported.\n\n");
 			print_usage();
 			return TASK_ERROR_USAGE;
 		}
-		if ((res = thread_sniff_init(ts->opt_p_arg, get_sniffer(*ts->opt_s_arg), baudr)) < 0)
+		if ((res = thread_sniff_init(ts->opt_p_arg, get_sniffer(ts->opt_s_arg), baudr)) < 0)
 		{
 			return res;
 		}
