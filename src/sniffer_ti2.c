@@ -364,8 +364,8 @@ static void follow(uint8_t *buf, size_t size)
 	{
 		memset(initiator_address, 0, DEVICE_ADDRESS_LENGTH);
 	}
-	serial_write(dev, cmd_ping, sizeof(cmd_ping));
-	last_cmd = SENT_CMD_PING;
+	serial_write(dev, cmd_stop, sizeof(cmd_stop));
+	last_cmd = SENT_CMD_STOP;
 }
 
 //--------------------------------------------
