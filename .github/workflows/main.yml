@@ -101,7 +101,6 @@ jobs:
       uses: microsoft/setup-msbuild@v1.1
     - name: Before Build
       run: |
-        mkdir ${{ env.npcap_dir }}
         (New-Object Net.WebClient).DownloadFile("${{ env.npcap_url }}", "${{ env.npcap_dir }}\npcap.zip")
         7z x ${{ env.npcap_dir }}\npcap.zip -y -o${{ env.npcap_dir }}
         (New-Object Net.WebClient).DownloadFile("${{ env.iup_x86_url }}", "${{ env.iup_x86_dir }}\iup_x86.zip")
