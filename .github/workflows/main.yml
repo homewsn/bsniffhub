@@ -38,7 +38,7 @@ jobs:
         wget -nv $COV_SCAN_URL --post-data "token=${{ secrets.COVERITY_SCAN_TOKEN }}&project=homewsn%2Fbsniffhub" -O /tmp/synopsys/cov_scan.tar.gz
         # Untar to /tmp/synopsys/cov_scan directory
         mkdir /tmp/synopsys/cov_scan
-        tar --totals -x -f /tmp/synopsys/cov_scan.tar.gz --strip 1 -C cov_scan
+        tar --totals -x -f /tmp/synopsys/cov_scan.tar.gz --strip 1 -C /tmp/synopsys/cov_scan
         echo ":$PATH:"
         export PATH=$PATH:/tmp/synopsys/cov_scan/bin
         echo ":$PATH:"
