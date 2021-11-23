@@ -32,19 +32,17 @@ jobs:
         tar -xvf /tmp/iup/iup.tar.gz
         printf '\n' | sudo ./install
         printf '\n' | sudo ./install_dev
-    - name: Install Coverity Scan
+    - name: Download and untar Coverity Scan
       run: |
         mkdir /tmp/synopsys
         wget -nv $COV_SCAN_URL --post-data "token=${{ secrets.COVERITY_SCAN_TOKEN }}&project=homewsn%2Fbsniffhub" -O /tmp/synopsys/cov_scan.tar.gz
         # Untar to /tmp/synopsys/cov_scan directory
         mkdir /tmp/synopsys/cov_scan
         tar --totals -x -f /tmp/synopsys/cov_scan.tar.gz --strip 1 -C /tmp/synopsys/cov_scan
-        echo ":$PATH:"
-        export PATH=$PATH:/tmp/synopsys/cov_scan/bin
-        echo ":$PATH:"
-        cd /tmp/synopsys/cov_scan/bin
-        ls
     - name: Coverity Scan Build
-      run: cov-build --dir cov-int make
+      run: |
+        export PATH=$PATH:/tmp/synopsys/cov_scan/bin
+        cov-configure --comptype gcc --compiler /usr/bin/gcc
+        cov-build --dir cov-int make
     - name: Build
       run: make
