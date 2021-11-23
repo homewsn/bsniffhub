@@ -35,10 +35,9 @@ jobs:
     - name: Install Coverity Scan
       run: |
         mkdir /tmp/synopsys
-        wget $COV_SCAN_URL --post-data "token=${{ secrets.COVERITY_SCAN_TOKEN }}&project=homewsn%2Fbsniffhub" -O /tmp/synopsys/cov_scan.tar.gz
-        tar -xvf /tmp/synopsys/cov_scan.tar.gz
+        wget -q --show-progress $COV_SCAN_URL --post-data "token=${{ secrets.COVERITY_SCAN_TOKEN }}&project=homewsn%2Fbsniffhub" -O /tmp/synopsys/cov_scan.tar.gz
+        tar -xvf --checkpoint=100 /tmp/synopsys/cov_scan.tar.gz
         export PATH=$PATH:/tmp/synopsys/cov_scan/bin/
-        cov-configure --comptype gcc --compiler /usr/bin/gcc
     - name: Coverity Scan Build
       run: cov-build --dir cov-int make
     - name: Build
