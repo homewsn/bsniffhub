@@ -1,4 +1,5 @@
 [![Release Status](https://img.shields.io/github/release/homewsn/bsniffhub.svg)](https://github.com/homewsn/bsniffhub/releases)
+[![Github CI Build Status](https://github.com/homewsn/bsniffhub/actions/workflows/main.yml/badge.svg)](https://github.com/homewsn/bsniffhub/actions?workflow%3Atest)
 [![Travis CI Build Status](https://travis-ci.com/homewsn/bsniffhub.svg?branch=master)](https://travis-ci.com/github/homewsn/bsniffhub)
 [![Coverity Scan Build Status](https://scan.coverity.com/projects/22350/badge.svg?flat=1)](https://scan.coverity.com/projects/homewsn-bsniffhub)
 [![Appveyor Build Status](https://ci.appveyor.com/api/projects/status/github/homewsn/bsniffhub?branch=master&svg=true)](https://ci.appveyor.com/project/homewsn/bsniffhub)
