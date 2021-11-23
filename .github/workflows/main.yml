@@ -21,7 +21,8 @@ jobs:
       CC: gcc
     steps:
     - uses: actions/checkout@v2
-    - name: Install Packages
+    - name: git_hash
+      run: |
         git_hash=$(git rev-parse --short "$GITHUB_SHA")
         echo git_hash
         echo $git_hash
