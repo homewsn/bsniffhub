@@ -93,8 +93,8 @@ jobs:
       npcap_dir: ${{ github.workspace }}\msvs\lib\npcap
       sln_dir: ${{ github.workspace }}\msvs
       # use existing folders, overwrite existing VC15 library files with new ones for VC16
-      iup_x86_dir: ${{ github.workspace }}\msvs\lib\Win32_vc15
-      iup_x64_dir: ${{ github.workspace }}\msvs\lib\Win64_vc15
+      iup_x86_dir: ${{ github.workspace }}\lib\iup\lib\Win32_vc15
+      iup_x64_dir: ${{ github.workspace }}\lib\iup\lib\Win64_vc15
     steps:
     - uses: actions/checkout@v2
     - name: Install Msbuild
