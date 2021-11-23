@@ -25,7 +25,7 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y libpcap-dev
-    - name: Before Build
+    - name: Download and install IUP
       run: |
         mkdir /tmp/iup
         wget $IUP_BIONIC_URL -O /tmp/iup/iup.tar.gz
@@ -44,5 +44,16 @@ jobs:
         export PATH=$PATH:/tmp/synopsys/cov_scan/bin
         cov-configure --comptype gcc --compiler /usr/bin/gcc
         cov-build --dir cov-int make
+    - name: Submit results to Coverity Scan
+      run: |
+        tar -czvf cov-int.tgz cov-int
+        git_hash=$(git rev-parse --short "$GITHUB_SHA")
+        curl \
+          --form token="${{ secrets.COVERITY_SCAN_TOKEN }}" \
+          --form email="homewsn.com@gmail.com" \
+          --form file=@cov-int.tgz \
+          --form version=git_hash \
+          --form description="Build submitted via Github Actions" \
+          "https://scan.coverity.com/builds?project=homewsn%2Fbsniffhub"
     - name: Build
       run: make
