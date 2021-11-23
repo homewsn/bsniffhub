@@ -37,8 +37,11 @@ jobs:
         mkdir /tmp/synopsys
         wget -nv $COV_SCAN_URL --post-data "token=${{ secrets.COVERITY_SCAN_TOKEN }}&project=homewsn%2Fbsniffhub" -O /tmp/synopsys/cov_scan.tar.gz
         # Untar to /tmp/synopsys/cov_scan directory
-        tar --totals -x -f /tmp/synopsys/cov_scan.tar.gz --transform 's!^[^/]\+\($\|/\)!cov_scan\1!'
-        export PATH=$PATH:/tmp/synopsys/cov_scan/bin/
+        mkdir /tmp/synopsys/cov_scan
+        tar --totals -x -f /tmp/synopsys/cov_scan.tar.gz --strip 1 -C cov_scan
+        echo ":$PATH:"
+        export PATH=$PATH:/tmp/synopsys/cov_scan/bin
+        echo ":$PATH:"
     - name: Coverity Scan Build
       run: cov-build --dir cov-int make
     - name: Build
