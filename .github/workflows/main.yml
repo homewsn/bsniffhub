@@ -42,6 +42,8 @@ jobs:
         echo ":$PATH:"
         export PATH=$PATH:/tmp/synopsys/cov_scan/bin
         echo ":$PATH:"
+        cd /tmp/synopsys/cov_scan/bin
+        ls
     - name: Coverity Scan Build
       run: cov-build --dir cov-int make
     - name: Build
