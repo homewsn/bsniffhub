@@ -1,0 +1,141 @@
+name: build
+
+on:
+  push:
+    branches: [ master, github-ci ]
+    paths-ignore:
+      - '**.md'
+      - 'examples/**'
+  pull_request:
+    branches: [ master, github-ci ]
+    paths-ignore:
+      - '**.md'
+      - 'examples/**'
+  workflow_dispatch:
+
+jobs:
+
+  Ubuntu-Bionic-gcc:
+    runs-on: ubuntu-18.04
+    env:
+      # URLs
+      IUP_BIONIC_URL: https://master.dl.sourceforge.net/project/iup/3.29/Linux%20Libraries/iup-3.29_Linux415_64_lib.tar.gz
+      COV_SCAN_URL: https://scan.coverity.com/download/cxx/linux64
+      # Compiler
+      CC: gcc
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install Packages
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libpcap-dev
+    - name: Download and install IUP
+      run: |
+        mkdir /tmp/iup
+        wget $IUP_BIONIC_URL -O /tmp/iup/iup.tar.gz
+        tar -xvf /tmp/iup/iup.tar.gz
+        printf '\n' | sudo ./install
+        printf '\n' | sudo ./install_dev
+    - name: Download and untar Coverity Scan
+      run: |
+        mkdir /tmp/synopsys
+        wget -nv $COV_SCAN_URL --post-data "token=${{ secrets.COVERITY_SCAN_TOKEN }}&project=homewsn%2Fbsniffhub" -O /tmp/synopsys/cov_scan.tar.gz
+        # Untar to /tmp/synopsys/cov_scan directory
+        mkdir /tmp/synopsys/cov_scan
+        tar --totals -x -f /tmp/synopsys/cov_scan.tar.gz --strip 1 -C /tmp/synopsys/cov_scan
+    - name: Coverity Scan Build
+      run: |
+        export PATH=$PATH:/tmp/synopsys/cov_scan/bin
+        cov-configure --comptype gcc --compiler /usr/bin/gcc
+        cov-build --dir cov-int make
+    - name: Submit results to Coverity Scan
+      run: |
+        tar -czvf cov-int.tgz cov-int
+        short_git_hash=$(git rev-parse --short "$GITHUB_SHA")
+        curl \
+          --form token="${{ secrets.COVERITY_SCAN_TOKEN }}" \
+          --form email="homewsn.com@gmail.com" \
+          --form file=@cov-int.tgz \
+          --form version=$short_git_hash \
+          --form description="Build submitted via Github Actions" \
+          "https://scan.coverity.com/builds?project=homewsn%2Fbsniffhub"
+#    - name: Build
+#      run: make
+
+  Ubuntu-Focal-gcc:
+    runs-on: ubuntu-20.04
+    env:
+      # URLs
+      IUP_FOCAL_URL: https://deac-ams.dl.sourceforge.net/project/iup/3.30/Linux%20Libraries/iup-3.30_Linux54_64_lib.tar.gz
+      # Compiler
+      CC: gcc
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install Packages
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libpcap-dev
+    - name: Before Build
+      run: |
+        mkdir /tmp/iup
+        wget $IUP_FOCAL_URL -O /tmp/iup/iup.tar.gz
+        tar -xvf /tmp/iup/iup.tar.gz
+        printf '\n' | sudo ./install
+        printf '\n' | sudo ./install_dev
+    - name: Build
+      run: make
+
+  Ubuntu-Latest-clang:
+    runs-on: ubuntu-latest
+    env:
+      # Compiler
+      CC: clang
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install Packages
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libpcap-dev
+    - name: Build
+      run: make bsniffhub
+
+  MacOS-Latest:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install Packages
+      run: |
+        brew update
+        brew install libpcap
+    - name: Build
+      run: make bsniffhub
+  
+  Windows-Latest-vc16:
+    runs-on: windows-latest
+    env:
+      # URLs
+      npcap_url: https://nmap.org/npcap/dist/npcap-sdk-1.06.zip
+      iup_x86_url: https://versaweb.dl.sourceforge.net/project/iup/3.30/Windows%20Libraries/Static/iup-3.30_Win32_vc16_lib.zip
+      iup_x64_url: https://phoenixnap.dl.sourceforge.net/project/iup/3.30/Windows%20Libraries/Static/iup-3.30_Win64_vc16_lib.zip
+      # Folders
+      npcap_dir: ${{ github.workspace }}\msvs\lib\npcap
+      sln_dir: ${{ github.workspace }}\msvs
+      # use existing folders, overwrite existing VC15 library files with new ones for VC16
+      iup_x86_dir: ${{ github.workspace }}\lib\iup\lib\Win32_vc15
+      iup_x64_dir: ${{ github.workspace }}\lib\iup\lib\Win64_vc15
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install Msbuild
+      uses: microsoft/setup-msbuild@v1.1
+    - name: Before Build
+      run: |
+        (New-Object Net.WebClient).DownloadFile("${{ env.npcap_url }}", "${{ env.npcap_dir }}\npcap.zip")
+        7z x ${{ env.npcap_dir }}\npcap.zip -y -o${{ env.npcap_dir }}
+        (New-Object Net.WebClient).DownloadFile("${{ env.iup_x86_url }}", "${{ env.iup_x86_dir }}\iup_x86.zip")
+        7z x ${{ env.iup_x86_dir }}\iup_x86.zip -y -o${{ env.iup_x86_dir }} iup.lib iupimglib.lib
+        (New-Object Net.WebClient).DownloadFile("${{ env.iup_x64_url }}", "${{ env.iup_x64_dir }}\iup_x64.zip")
+        7z x ${{ env.iup_x64_dir }}\iup_x64.zip -y -o${{ env.iup_x64_dir }} iup.lib iupimglib.lib
+    - name: Build x64
+      run: msbuild ${{ env.sln_dir }}\bsniffhub.sln /p:configuration=Release /p:platform=x64
+    - name: Build x86
+      run: msbuild ${{ env.sln_dir }}\bsniffhub.sln /p:configuration=Release /p:platform=x86
