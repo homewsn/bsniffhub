@@ -31,6 +31,7 @@
 #include "thread_cli.h"
 #include "ble_info.h"
 #include "sniffers.h"
+#include "base64.h"
 #ifndef _WIN32
 #include "iup_icon.h"
 #endif
@@ -234,18 +235,22 @@ static int lst_bledev_postmessage_cb(Ihandle *ih, const char* s, int i, double d
 {
 	static char str_buf[255];
 	static unsigned char adv_addr[DEVICE_ADDRESS_LENGTH + 1] = { 0 };
+	static char dec_buf[255];
+	long res;
 
-	memcpy(adv_addr, s, DEVICE_ADDRESS_LENGTH);
-	if (s[DEVICE_ADDRESS_LENGTH + 1])
+	res = base64_decode(dec_buf, s, (unsigned long)strlen(s));
+	assert(res <= sizeof(dec_buf));
+	memcpy(adv_addr, dec_buf, DEVICE_ADDRESS_LENGTH);
+	if (dec_buf[DEVICE_ADDRESS_LENGTH + 1])
 	{
-		sprintf(str_buf, LST_ITEM_DEVICE_RANDOM, s[DEVICE_ADDRESS_LENGTH], adv_addr[0], adv_addr[1], adv_addr[2], adv_addr[3], adv_addr[4], adv_addr[5]);
+		sprintf(str_buf, LST_ITEM_DEVICE_RANDOM, dec_buf[DEVICE_ADDRESS_LENGTH], adv_addr[0], adv_addr[1], adv_addr[2], adv_addr[3], adv_addr[4], adv_addr[5]);
 	}
 	else
 	{
-		sprintf(str_buf, LST_ITEM_DEVICE_PUBLIC, s[DEVICE_ADDRESS_LENGTH], adv_addr[0], adv_addr[1], adv_addr[2], adv_addr[3], adv_addr[4], adv_addr[5]);
+		sprintf(str_buf, LST_ITEM_DEVICE_PUBLIC, dec_buf[DEVICE_ADDRESS_LENGTH], adv_addr[0], adv_addr[1], adv_addr[2], adv_addr[3], adv_addr[4], adv_addr[5]);
 	}
 	IupSetAttribute(ih, "APPENDITEM", str_buf);
-	list_lstbox_add(&list_bledev, (const char *)adv_addr, str_buf);
+	list_lstbox_add_devname_length(&list_bledev, (const char *)adv_addr, DEVICE_ADDRESS_LENGTH, str_buf);
 	return IUP_DEFAULT;
 }
 

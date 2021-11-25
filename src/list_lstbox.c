@@ -39,6 +39,27 @@ list_lstbox_t *list_lstbox_add(list_lstbox_t **list, const char *devname, const 
 }
 
 //--------------------------------------------
+list_lstbox_t *list_lstbox_add_devname_length(list_lstbox_t **list, const char *devname, size_t devname_length, const char *scrname)
+{
+	list_lstbox_t *item;
+
+	assert(devname != NULL);
+	assert(scrname != NULL);
+
+	if ((item = (list_lstbox_t *)malloc(sizeof(list_lstbox_t))) == NULL)
+	{
+		return NULL;
+	}
+	memset(item, 0, sizeof(list_lstbox_t));
+	item->id = (int)list_lstbox_get_length(list) + 1;
+	assert(devname_length < DEVNAME_MAX_LEN);
+	memcpy(item->devname, devname, devname_length);
+	strncpy(item->scrname, scrname, SCRNAME_MAX_LEN);
+	list_lstbox_add_item(list, item);
+	return item;
+}
+
+//--------------------------------------------
 char *list_lstbox_find_devname_by_id(list_lstbox_t **list, int id)
 {
 	list_lstbox_t *item;

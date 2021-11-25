@@ -13,6 +13,7 @@
 */
 
 #include <stdint.h>     /* uint8_t ... uint64_t */
+#include <assert.h>     /* assert */
 #include <stdio.h>      /* sprintf */
 #include <string.h>		/* memcpy, memset */
 #include "thread.h"
@@ -21,6 +22,7 @@
 #include "gui_iup.h"
 #include "msg_cli_ble.h"
 #include "ble.h"
+#include "base64.h"
 
 //--------------------------------------------
 #define MSG_PRINT_DEVICE_RANDOM         "BLE device %d dBm %02x:%02x:%02x:%02x:%02x:%02x random detected.\n"
@@ -65,6 +67,7 @@ static void thread_run(void *param)
 		static msg_cli_t *msg;
 		static char str_buf[255];
 		unsigned char adv_addr[DEVICE_ADDRESS_LENGTH];
+		long res;
 
 		switch (thread_mode)
 		{
@@ -77,7 +80,10 @@ static void thread_run(void *param)
 					gui_log_append(msg->buf);
 					break;
 				case CLI_SNIF_FOLLOW_DEVICE:
-					gui_bledev_append(msg->buf);
+					res = base64_encode(str_buf, msg->buf, DEVICE_ADDRESS_LENGTH + 2);
+					assert(res <= sizeof(str_buf) + 1);
+					str_buf[res] = '\0';
+					gui_bledev_append(str_buf);
 					memcpy(adv_addr, msg->buf, DEVICE_ADDRESS_LENGTH);
 					if (msg->buf[DEVICE_ADDRESS_LENGTH + 1])
 					{

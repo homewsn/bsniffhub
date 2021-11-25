@@ -37,6 +37,7 @@ typedef struct list_lstbox
 #define list_lstbox_get_length(a) list_get_length((list_t **)a)
 #define list_lstbox_next(a) (list_lstbox_t *)list_next((list_t *)a)
 list_lstbox_t *list_lstbox_add(list_lstbox_t **list, const char *devname, const char *scrname);
+list_lstbox_t *list_lstbox_add_devname_length(list_lstbox_t **list, const char *devname, size_t devname_length, const char *scrname);
 char *list_lstbox_find_devname_by_id(list_lstbox_t **list, int id);
 char *list_lstbox_find_scrname_by_id(list_lstbox_t **list, int id);
 int list_lstbox_find_id_by_devname(list_lstbox_t **list, char *devname);
