@@ -84,19 +84,6 @@ void print_usage(void)
 }
 
 //--------------------------------------------
-static void printf_msg(char *msg, int out2log)
-{
-	if (out2log)
-	{
-		printf("One of the options -s or -r is required.\n\n");
-	}
-	else
-	{
-		printf("%s\n", msg);
-	}
-}
-
-//--------------------------------------------
 int task_start(task_settings_t *ts, int gui)
 {
 	int baudr = 0;
