@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2020 Vladimir Alemasov
+* Copyright (c) 2013-2020, 2024 Vladimir Alemasov
 * All rights reserved
 *
 * This program and the accompanying materials are distributed under 
@@ -179,6 +179,7 @@ int msg_cond_remove(msgqueue_cond_t *queue, msg_t *msg)
 	return 0;
 }
 
+#define COND_TIMEOUT_MS    500
 //--------------------------------------------
 msg_t *msg_cond_get_first(msgqueue_cond_t *queue)
 {
@@ -192,7 +193,7 @@ msg_t *msg_cond_get_first(msgqueue_cond_t *queue)
 	msg = get_first(&queue->msglist);
 	if (msg == NULL)
 	{
-		pthread_cond_wait(&queue->cond, &queue->mutex);
+		pthread_cond_timewait(&queue->cond, &queue->mutex, COND_TIMEOUT_MS);
 	}
 	pthread_mutex_unlock(&queue->mutex);
 	return msg;

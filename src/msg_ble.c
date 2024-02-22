@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2020 Vladimir Alemasov
+* Copyright (c) 2020, 2024 Vladimir Alemasov
 * All rights reserved
 *
 * This program and the accompanying materials are distributed under
@@ -46,9 +46,9 @@ msg_ble_t *msg_ble_new(void)
 }
 
 //--------------------------------------------
-int msg_ble_remove(msgqueue_t *queue, msg_ble_t *ms)
+int msg_ble_remove(msgqueue_cond_t *queue, msg_ble_t *ms)
 {
-	if (msg_remove(queue, (msg_t *)ms) < 0)
+	if (msg_cond_remove(queue, (msg_t *)ms) < 0)
 	{
 		return -1;
 	}
@@ -57,9 +57,9 @@ int msg_ble_remove(msgqueue_t *queue, msg_ble_t *ms)
 }
 
 //--------------------------------------------
-int msg_ble_remove_cover(msgqueue_t *queue, msg_ble_t *ms)
+int msg_ble_remove_cover(msgqueue_cond_t *queue, msg_ble_t *ms)
 {
-	if (msg_remove(queue, (msg_t *)ms) < 0)
+	if (msg_cond_remove(queue, (msg_t *)ms) < 0)
 	{
 		return -1;
 	}
@@ -68,7 +68,7 @@ int msg_ble_remove_cover(msgqueue_t *queue, msg_ble_t *ms)
 }
 
 //--------------------------------------------
-void msg_ble_remove_all(msgqueue_t *queue)
+void msg_ble_remove_all(msgqueue_cond_t *queue)
 {
 	msg_ble_t *ms;
 
@@ -79,14 +79,14 @@ void msg_ble_remove_all(msgqueue_t *queue)
 }
 
 //--------------------------------------------
-void msg_ble_destroy(msgqueue_t *queue)
+void msg_ble_destroy(msgqueue_cond_t *queue)
 {
 	msg_ble_remove_all(queue);
-	msg_destroy(queue);
+	msg_cond_destroy(queue);
 }
 
 //--------------------------------------------
-int msg_ble_add_packet(msgqueue_t *queue, ble_info_t *info)
+int msg_ble_add_packet(msgqueue_cond_t *queue, ble_info_t *info)
 {
 	msg_ble_t *ms;
 

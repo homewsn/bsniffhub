@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2020 Vladimir Alemasov
+* Copyright (c) 2020, 2024 Vladimir Alemasov
 * All rights reserved
 *
 * This program and the accompanying materials are distributed under 
@@ -16,7 +16,7 @@
 #include "msg_ble_pcap.h"
 
 //--------------------------------------------
-static msgqueue_t queue;
+static msgqueue_cond_t queue;
 
 //--------------------------------------------
 int msg_ble_pcap_init(void)

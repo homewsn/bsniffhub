@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2020 Vladimir Alemasov
+* Copyright (c) 2020, 2024 Vladimir Alemasov
 * All rights reserved
 *
 * This program and the accompanying materials are distributed under 
@@ -73,6 +73,15 @@ int pthread_cond_wait(pthread_cond_t *cv, pthread_mutex_t *mutex)
 }
 
 //--------------------------------------------
+int pthread_cond_timewait(pthread_cond_t *cv, pthread_mutex_t *mutex, unsigned long msec)
+{
+	HANDLE handles[] = { cv->signal, cv->broadcast };
+	ReleaseMutex(*mutex);
+	WaitForMultipleObjects(2, handles, FALSE, msec);
+	return WaitForSingleObject(*mutex, msec) == WAIT_OBJECT_0 ? 0 : -1;
+}
+
+//--------------------------------------------
 int pthread_cond_signal(pthread_cond_t *cv)
 {
 	return SetEvent(cv->signal) == 0 ? -1 : 0;
@@ -91,6 +100,7 @@ int pthread_cond_destroy(pthread_cond_t *cv)
 }
 
 #else
+#include <sys/time.h>   /* gettimeofday */
 
 //--------------------------------------------
 int thread_begin(void *func(void *), void *param, pthread_t *threadidptr)
@@ -108,6 +118,23 @@ int thread_begin(void *func(void *), void *param, pthread_t *threadidptr)
 		*threadidptr = thread_id;
 	}
 	return result;
+}
+
+//--------------------------------------------
+int pthread_cond_timewait(pthread_cond_t *cv, pthread_mutex_t *mutex, unsigned long msec)
+{
+	struct timeval now;
+	struct timespec timeout;
+	gettimeofday(&now, 0);
+	timeout.tv_sec = now.tv_sec + msec / 1000;      // sec
+	timeout.tv_nsec = now.tv_usec * 1000 + (msec % 1000) * 1000000; // nsec
+	if (timeout.tv_nsec >= 1000000000)
+	{
+		timeout.tv_sec += 1;
+		timeout.tv_nsec -= 1000000000;
+	}
+
+	return pthread_cond_timedwait(cv, mutex, &timeout);
 }
 
 #endif

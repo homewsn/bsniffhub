@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2020 Vladimir Alemasov
+* Copyright (c) 2020, 2024 Vladimir Alemasov
 * All rights reserved
 *
 * This program and the accompanying materials are distributed under
@@ -80,7 +80,7 @@ static void thread_run(void *param)
 		{
 			break;
 		}
-		sleep(10);
+		sched_yield();
 	}
 
 	if (pd)
