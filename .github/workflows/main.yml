@@ -15,8 +15,8 @@ on:
 
 jobs:
 
-  Ubuntu-Bionic-gcc:
-    runs-on: ubuntu-18.04
+  Coverity-Scan-gcc:
+    runs-on: ubuntu-20.04
     env:
       # URLs
       IUP_BIONIC_URL: https://master.dl.sourceforge.net/project/iup/3.29/Linux%20Libraries/iup-3.29_Linux415_64_lib.tar.gz
@@ -24,7 +24,7 @@ jobs:
       # Compiler
       CC: gcc
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Install Packages
       run: |
         sudo apt-get update
@@ -70,7 +70,7 @@ jobs:
       # Compiler
       CC: gcc
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Install Packages
       run: |
         sudo apt-get update
@@ -91,7 +91,7 @@ jobs:
       # Compiler
       CC: clang
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Install Packages
       run: |
         sudo apt-get update
@@ -102,7 +102,7 @@ jobs:
   MacOS-Latest:
     runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Install Packages
       run: |
         brew update
@@ -110,8 +110,8 @@ jobs:
     - name: Build
       run: make bsniffhub
   
-  Windows-Latest-vc16:
-    runs-on: windows-latest
+  Windows-2019-vc16:
+    runs-on: windows-2019
     env:
       # URLs
       npcap_url: https://nmap.org/npcap/dist/npcap-sdk-1.06.zip
@@ -124,9 +124,9 @@ jobs:
       iup_x86_dir: ${{ github.workspace }}\lib\iup\lib\Win32_vc15
       iup_x64_dir: ${{ github.workspace }}\lib\iup\lib\Win64_vc15
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Install Msbuild
-      uses: microsoft/setup-msbuild@v1.1
+      uses: microsoft/setup-msbuild@v2
     - name: Before Build
       run: |
         (New-Object Net.WebClient).DownloadFile("${{ env.npcap_url }}", "${{ env.npcap_dir }}\npcap.zip")
