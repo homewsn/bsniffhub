@@ -30,7 +30,7 @@
 // Sniffle is a sniffer for Bluetooth 5 and 4.x (LE) using TI CC1352/CC26x2 hardware
 // https://github.com/nccgroup/Sniffle
 // Decryption of encrypted packets is not supported.
-// Sniffle v1.6 firmware.
+// Sniffle v1.6/v1.7 firmware.
 //--------------------------------------------
 // Layout of the decoded message:
 //            0            |    1    | 2  | 3  | 4 | 5  |    6    |   7    |     8   |   9    |  10  |     11      | ... | n + 12 |

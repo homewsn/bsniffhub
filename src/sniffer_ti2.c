@@ -29,7 +29,7 @@
 // SmartRF Packet Sniffer 2 is a sniffer for Bluetooth 4.x (LE) using TI CC13xx/CC26xx hardware
 // http://www.ti.com/tool/PACKET-SNIFFER
 // Decryption of encrypted packets is not supported.
-// TI SmartRF Packet Sniffer 2 v1.9.0 firmware.
+// TI SmartRF Packet Sniffer 2 v1.9.0/v1.10.0 firmware.
 //--------------------------------------------
 // Layout of the Command and Command Response messages:
 //  0   |  1   |      2      |   3   |   4   | ...  | n + 4 | n + 5 | n + 6 | n + 7 |
@@ -68,9 +68,12 @@
 #define CC26X2R                         0x21
 #define CC1352R                         0x30
 #define CC1352P                         0x50
-#define CC26X2R_BLE_PHY                 0x01
-#define CC1352R_BLE_PHY                 0x0E
-#define CC1352P_BLE_PHY                 0x12
+#define CC26X2R_BLE_PHY_V1_9            0x01
+#define CC1352R_BLE_PHY_V1_9            0x0E
+#define CC1352P_BLE_PHY_V1_9            0x12
+#define CC26X2R_BLE_PHY_V1_10           0x01
+#define CC1352R_BLE_PHY_V1_10           0x0F
+#define CC1352P_BLE_PHY_V1_10           0x13
 
 //--------------------------------------------
 static const uint8_t cmd_ping[] = CMD_PING;
@@ -125,20 +128,48 @@ static void command_send(uint8_t *buf, size_t len)
 		break;
 	case SENT_CMD_PING:
 		assert(len == 15);
-		switch (buf[9])
+		if (buf[10] == 0x9 && buf[11] == 0x1)
 		{
-		case CC26X2R:
-			ble_phy = CC26X2R_BLE_PHY;
-			break;
-		case CC1352R:
-			ble_phy = CC1352R_BLE_PHY;
-			break;
-		case CC1352P:
-			ble_phy = CC1352P_BLE_PHY;
-			break;
-		default:
+			// Version 1.9
+			switch (buf[9])
+			{
+			case CC26X2R:
+				ble_phy = CC26X2R_BLE_PHY_V1_9;
+				break;
+			case CC1352R:
+				ble_phy = CC1352R_BLE_PHY_V1_9;
+				break;
+			case CC1352P:
+				ble_phy = CC1352P_BLE_PHY_V1_9;
+				break;
+			default:
+				ble_phy = -1;
+				break;
+			}
+		}
+		else if (buf[10] == 0xA && buf[11] == 0x1)
+		{
+			// Version 1.10
+			switch (buf[9])
+			{
+			case CC26X2R:
+				ble_phy = CC26X2R_BLE_PHY_V1_10;
+				break;
+			case CC1352R:
+				ble_phy = CC1352R_BLE_PHY_V1_10;
+				break;
+			case CC1352P:
+				ble_phy = CC1352P_BLE_PHY_V1_10;
+				break;
+			default:
+				ble_phy = -1;
+				break;
+			}
+		}
+		else
+		{
+			// Unknown version
 			ble_phy = -1;
-			break;
 		}
 		if (ble_phy != -1)
 		{

@@ -18,11 +18,11 @@ Bsniffhub can be used both for working with the BLE sniffers and for decrypting 
 Bsniffhub has both a console version and a graphical user interface version, and it can be built for use on Linux or Windows.
 
 #### Supported BLE sniffers:
-* [Sniffle v1.6](https://github.com/nccgroup/Sniffle) by Sultan Qasim Khan from NCC Group
-* [nRF Sniffer for Bluetooth LE v3.x.0 or 4.0.0](https://www.nordicsemi.com/Products/Development-tools/nrf-sniffer-for-bluetooth-le) by Nordic Semiconductor
-* [SmartRF Packet Sniffer 2 v1.9.0](https://www.ti.com/tool/download/PACKET-SNIFFER-2) by Texas Instruments
+* [Sniffle v1.6/v1.7](https://github.com/nccgroup/Sniffle) by Sultan Qasim Khan from NCC Group
+* [nRF Sniffer for Bluetooth LE v3.x.0 or 4.x.x](https://www.nordicsemi.com/Products/Development-tools/nrf-sniffer-for-bluetooth-le) by Nordic Semiconductor
+* [SmartRF Packet Sniffer 2 v1.9.0/v1.10.0](https://www.ti.com/tool/download/PACKET-SNIFFER-2) by Texas Instruments
 
-| Supported features | Sniffle v1.6 | nRF Sniffer v3.x.0 | nRF Sniffer v4.0.0 | SmartRF Packet Sniffer 2 v1.9.0 |
+| Supported features | Sniffle v1.6/v1.7 | nRF Sniffer v3.x.0 | nRF Sniffer v4.x.x | SmartRF Packet Sniffer 2 v1.9/v1.10 |
 | ------ | :------: | :------: | :------: | :------: |
 | PHY 1 Mbps | + | + | + | + |
 | PHY 2 Mbps | + | + | + | - |
@@ -76,9 +76,9 @@ Usage:
 Mandatory arguments for sniffer device input:
   -s <sniffer>       Sniffer device:
                      'N3' - nRF Sniffer v3.x.0
-                     'N4' - nRF Sniffer v4.0.0
-                     'T' - SmartRF Packet Sniffer 2 v1.9.0
-                     'S' - Sniffle v1.6
+                     'N4' - nRF Sniffer v4.x.x
+                     'T' - SmartRF Packet Sniffer 2 v1.9/v1.10
+                     'S' - Sniffle v1.6/v1.7
   -p <serport>       Serial port name
 
 Optional argument for sniffer device input:

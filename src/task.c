@@ -50,9 +50,9 @@ void print_usage(void)
 	printf("Mandatory arguments for sniffer device input:\n");
 	printf("  -s <sniffer>       Sniffer device:\n");
 	printf("                     'N3' - nRF Sniffer v3.x.0\n");
-	printf("                     'N4' - nRF Sniffer v4.0.0\n");
-	printf("                     'T' - SmartRF Packet Sniffer 2 v1.9.0\n");
-	printf("                     'S' - Sniffle v1.6\n");
+	printf("                     'N4' - nRF Sniffer v4.x.x\n");
+	printf("                     'T' - SmartRF Packet Sniffer 2 v1.9/v1.10\n");
+	printf("                     'S' - Sniffle v1.6/v1.7\n");
 	printf("  -p <serport>       Serial port name\n\n");
 	printf("Optional argument for sniffer device input:\n");
 	printf("  -b <baudrate>      Serial port baudrate (def: from sniffer guide)\n\n");
