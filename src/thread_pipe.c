@@ -93,7 +93,7 @@ static int wireshark_start(const char *name, char *pipe_name)
 		strcpy(path, "C:\\Program Files\\Wireshark\\Wireshark.exe");
 	}
 
-	sprintf(cmd, " -i %s -k -l", pipe_name);
+	sprintf(cmd, " -i %s -k -l --log-level error", pipe_name);
 
 	if (!CreateProcess(
 		path,           // The path
@@ -139,7 +139,7 @@ static int wireshark_start(const char *name, char *pipe_name)
 	pid = vfork();
 	if (pid == 0)
 	{
-		char *newargv[] = { "wireshark", "-i", pipe_name, "-k", "-l", NULL };
+		char *newargv[] = { "wireshark", "-i", pipe_name, "-k", "-l", "--log-level", "error", NULL };
 
 		close(child_pipe[0]);
 		res = fcntl(child_pipe[1], F_SETFD, FD_CLOEXEC);
