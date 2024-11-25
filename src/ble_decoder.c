@@ -686,7 +686,11 @@ static void csa_identify(ble_conn_t *conn)
 	list_adv_t *item;
 	if ((item = list_adv_find_addr(&adv_devs, conn->ra)) == NULL)
 	{
+#if 0
 		assert(0);
+#endif
+		// csa #2
+		conn->csa = 1;
 		return;
 	}
 	if (conn->csa && item->csa)
