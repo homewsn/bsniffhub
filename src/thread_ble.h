@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2020 Vladimir Alemasov
+* Copyright (c) 2020, 2024 Vladimir Alemasov
 * All rights reserved
 *
 * This program and the accompanying materials are distributed under
@@ -15,7 +15,7 @@
 #ifndef THREAD_BLE_H_
 #define THREAD_BLE_H_
 
-void thread_ble_init(int to_pipe, int no_dec);
+void thread_ble_init(int to_pipe, int no_dec, char *ltk);
 void thread_ble_start(void);
 void thread_ble_stop(void);
 

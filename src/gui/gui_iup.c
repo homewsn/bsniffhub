@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2020, 2021 Vladimir Alemasov
+* Copyright (c) 2020, 2021, 2024 Vladimir Alemasov
 * All rights reserved
 *
 * This program and the accompanying materials are distributed under
@@ -363,6 +363,7 @@ static int btn_start_action_cb(Ihandle* ih)
 	ts.opt_l = 1;
 	ts.opt_l_arg = list_lstbox_find_devname_by_id(&list_link, IupGetInt(lst_link, "VALUE"));
 	ts.opt_n = IupGetInt(tgl_nodec, "VALUE");
+	ts.opt_L = 0;
 
 	if ((res = task_start(&ts, 1)) < 0)
 	{

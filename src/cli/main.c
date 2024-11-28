@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2020 Vladimir Alemasov
+* Copyright (c) 2020, 2024 Vladimir Alemasov
 * All rights reserved
 *
 * This program and the accompanying materials are distributed under
@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
 	signal(SIGINT, signal_handler);
 #endif
 
-	while ((option = getopt(argc, argv, "s:p:b:r:w:l:W:n")) != -1)
+	while ((option = getopt(argc, argv, "s:p:b:r:w:l:W:nL:")) != -1)
 	{
 		switch (option)
 		{
@@ -95,6 +95,10 @@ int main(int argc, char *argv[])
 			break;
 		case 'n':
 			ts.opt_n = 1;
+			break;
+		case 'L':
+			ts.opt_L = 1;
+			ts.opt_L_arg = optarg;
 			break;
 		default: // '?'
 			print_usage();

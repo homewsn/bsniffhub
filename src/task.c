@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2020, 2021 Vladimir Alemasov
+* Copyright (c) 2020, 2021, 2024 Vladimir Alemasov
 * All rights reserved
 *
 * This program and the accompanying materials are distributed under
@@ -15,6 +15,8 @@
 #include <stdint.h>     /* uint8_t ... uint64_t */
 #include <stdio.h>      /* printf */
 #include <stdlib.h>     /* atoi */
+#include <string.h>     /* strlen */
+#include <ctype.h>      /* isdigit */
 #include "thread.h"
 #include "msg_to_cli.h"
 #include "msg_ble_pcap.h"
@@ -35,6 +37,9 @@
 #include "thread_pcap_w.h"
 #include "task.h"
 
+
+//--------------------------------------------
+#define ishexchar(c)                    ((c) >= 'A' && (c) <= 'F') || ((c) >= 'a' && (c) <= 'f')
 
 //--------------------------------------------
 void print_usage(void)
@@ -64,7 +69,8 @@ void print_usage(void)
 	printf("                     '251' - LINKTYPE_BLUETOOTH_LE_LL\n");
 	printf("                     '256' - LINKTYPE_BLUETOOTH_LE_LL_WITH_PHDR (def)\n");
 	printf("                     '272' - LINKTYPE_NORDIC_BLE\n");
-	printf("  -n                 Don't try to decode\n");
+	printf("  -n                 Don't try to decrypt\n");
+	printf("  -L <LTK>           LTK key for decrypting packets\n");
 #ifdef WIN32
 	printf("  -W <path to Wireshark>   Path to Wireshark.exe\n");
 	printf("\nExamples:\n");
@@ -96,6 +102,30 @@ int task_start(task_settings_t *ts, int gui)
 		printf("One of the options -s or -r is required.\n\n");
 		print_usage();
 		return TASK_ERROR_USAGE;
+	}
+	if (ts->opt_n && ts->opt_L)
+	{
+		printf("You cannot use options -n and -L at the same time.\n\n");
+		print_usage();
+		return TASK_ERROR_USAGE;
+	}
+	if (ts->opt_L)
+	{
+		if (strlen(ts->opt_L_arg) != 32)
+		{
+			printf("The LTK length must be 32 hexadecimal characters.\n\n");
+			print_usage();
+			return TASK_ERROR_USAGE;
+		}
+		for (size_t cnt = 0; cnt < 32; cnt++)
+		{
+			if (!(ishexchar(ts->opt_L_arg[cnt])) && !(isdigit(ts->opt_L_arg[cnt])))
+			{
+				printf("LTK must consist of hexadecimal characters only.\n\n");
+				print_usage();
+				return TASK_ERROR_USAGE;
+			}
+		}
 	}
 	if (ts->opt_s)
 	{
@@ -168,7 +198,14 @@ int task_start(task_settings_t *ts, int gui)
 		{
 			return res;
 		}
-		thread_ble_init(1, ts->opt_n);
+		if (ts->opt_L)
+		{
+			thread_ble_init(1, ts->opt_n, ts->opt_L_arg);
+		}
+		else
+		{
+			thread_ble_init(1, ts->opt_n, NULL);
+		}
 	}
 	else
 	{
@@ -177,7 +214,14 @@ int task_start(task_settings_t *ts, int gui)
 		{
 			return res;
 		}
-		thread_ble_init(0, ts->opt_n);
+		if (ts->opt_L)
+		{
+			thread_ble_init(0, ts->opt_n, ts->opt_L_arg);
+		}
+		else
+		{
+			thread_ble_init(0, ts->opt_n, NULL);
+		}
 	}
 
 	// init message queues

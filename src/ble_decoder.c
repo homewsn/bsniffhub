@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2020 Vladimir Alemasov
+* Copyright (c) 2020, 2024 Vladimir Alemasov
 * All rights reserved
 *
 * This program and the accompanying materials are distributed under 
@@ -1841,7 +1841,7 @@ void ltk_set(uint8_t *buf, size_t size)
 {
 	size_t cnt;
 
-	assert(size == 33);
+	assert(size == 32 || size == 33);
 
 	for (cnt = 0; cnt < size / 2; cnt++, buf += 2)
 	{

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2020 Vladimir Alemasov
+* Copyright (c) 2020, 2024 Vladimir Alemasov
 * All rights reserved
 *
 * This program and the accompanying materials are distributed under
@@ -26,6 +26,7 @@ typedef struct task_settings
 	int opt_l;
 	int opt_n;
 	int opt_W;
+	int opt_L;
 	char *opt_s_arg;
 	char *opt_p_arg;
 	char *opt_b_arg;
@@ -33,6 +34,7 @@ typedef struct task_settings
 	char *opt_w_arg;
 	char *opt_l_arg;
 	char *opt_W_arg;
+	char *opt_L_arg;
 } task_settings_t;
 
 #define TASK_ERROR_USAGE                         -1

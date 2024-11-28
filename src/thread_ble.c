@@ -13,6 +13,7 @@
 */
 
 #include <stdint.h>     /* uint8_t ... uint64_t */
+#include <string.h>     /* strlen */
 #include "thread.h"
 #include "thread_state.h"
 #include "msg_pckt_ble.h"
@@ -143,10 +144,14 @@ static void *thread_launcher(void *param)
 #endif
 
 //--------------------------------------------
-void thread_ble_init(int to_pipe, int no_dec)
+void thread_ble_init(int to_pipe, int no_dec, char *ltk)
 {
 	out_to_pipe = to_pipe;
 	no_decoding = no_dec;
+	if (ltk)
+	{
+		ltk_set((uint8_t *)ltk, strlen(ltk));
+	}
 }
 
 //--------------------------------------------
