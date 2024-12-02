@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2020, 2021 Vladimir Alemasov
+* Copyright (c) 2020, 2021, 2024 Vladimir Alemasov
 * All rights reserved
 *
 * This program and the accompanying materials are distributed under
@@ -102,6 +102,7 @@ static uint8_t initiator_address[DEVICE_ADDRESS_LENGTH] = { 0x00, 0x00, 0x00, 0x
 static list_adv_t *adv_devs;
 static uint64_t timestamp_initial_us;
 static uint8_t hello;
+static int8_t min_rssi = -128;
 
 //--------------------------------------------
 static uint8_t fcs_calc(uint8_t *buf, size_t len)
@@ -252,6 +253,13 @@ static int packet_decode(uint8_t *buf, size_t len, ble_info_t **info)
 		break;
 	}
 	(*info)->rssi = *(buf + 15 + pkt_length); // RSSI value with a minus sign
+
+	if ((*info)->rssi < min_rssi)
+	{
+		free(*info);
+		return -1;
+	}
+
 	if ((*(buf + 16 + pkt_length)) & 0x80)
 	{
 		(*info)->status_crc = CHECK_OK;
@@ -400,10 +408,16 @@ static void follow(uint8_t *buf, size_t size)
 }
 
 //--------------------------------------------
+static void min_rssi_set(int8_t rssi)
+{
+	min_rssi = rssi;
+}
+
+//--------------------------------------------
 static void close_free(void)
 {
 	list_adv_remove_all(&adv_devs);
 }
 
 //--------------------------------------------
-SNIFFER(sniffer_ti2, "T", 3000000, 0, init, serial_packet_decode, follow, NULL, NULL, NULL, close_free);
+SNIFFER(sniffer_ti2, "T", 3000000, 0, init, serial_packet_decode, follow, NULL, NULL, NULL, min_rssi_set, close_free);

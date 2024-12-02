@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2020, 2021 Vladimir Alemasov
+* Copyright (c) 2020, 2021, 2024 Vladimir Alemasov
 * All rights reserved
 *
 * This program and the accompanying materials are distributed under
@@ -96,6 +96,7 @@ static uint8_t cmd_buf[MAX_MSG_SIZE];
 static uint16_t host_to_sniffer_msg_cnt;
 static list_adv_t *adv_devs;
 static uint64_t timestamp_initial_us;
+static int8_t min_rssi = -128;
 
 //--------------------------------------------
 static int slip_encode(uint8_t *dst, const uint8_t *src, size_t src_len)
@@ -403,6 +404,12 @@ static int packet_decode(uint8_t *buf, size_t len, ble_info_t **info, uint8_t pa
 	(*info)->rssi = - buf[MSG_HEADER_SIZE + 3]; // nRF sniffer prefers the RSSI value without a minus sign
 	(*info)->counter_conn = buf[MSG_HEADER_SIZE + 4] | (buf[MSG_HEADER_SIZE + 5] << 8);
 
+	if ((*info)->rssi < min_rssi)
+	{
+		free(*info);
+		return -1;
+	}
+
 	(*info)->size = pkt_length - hdr_length - 1 - ci_flag;
 	if (((*info)->buf = (uint8_t *)malloc((*info)->size)) == NULL)
 	{
@@ -583,10 +590,16 @@ static void oob_key_set(uint8_t *buf, size_t size)
 }
 
 //--------------------------------------------
+static void min_rssi_set(int8_t rssi)
+{
+	min_rssi = rssi;
+}
+
+//--------------------------------------------
 static void close_free(void)
 {
 	list_adv_remove_all(&adv_devs);
 }
 
 //--------------------------------------------
-SNIFFER(sniffer_nrf4, "N4", 1000000, 1, init, serial_packet_decode, follow, passkey_set, oob_key_set, NULL, close_free);
+SNIFFER(sniffer_nrf4, "N4", 1000000, 1, init, serial_packet_decode, follow, passkey_set, oob_key_set, NULL, min_rssi_set, close_free);

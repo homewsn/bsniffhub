@@ -27,6 +27,7 @@ typedef struct task_settings
 	int opt_n;
 	int opt_W;
 	int opt_L;
+	int opt_R;
 	char *opt_s_arg;
 	char *opt_p_arg;
 	char *opt_b_arg;
@@ -35,6 +36,7 @@ typedef struct task_settings
 	char *opt_l_arg;
 	char *opt_W_arg;
 	char *opt_L_arg;
+	char *opt_R_arg;
 } task_settings_t;
 
 #define TASK_ERROR_USAGE                         -1

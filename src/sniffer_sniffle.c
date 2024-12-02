@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2020, 2021 Vladimir Alemasov
+* Copyright (c) 2020, 2021, 2024 Vladimir Alemasov
 * All rights reserved
 *
 * This program and the accompanying materials are distributed under
@@ -64,6 +64,7 @@ static HANDLE dev;
 static uint8_t cmd_buf[MAX_MSG_SIZE];
 static list_adv_t *adv_devs;
 static uint64_t timestamp_initial_us;
+static int8_t min_rssi = -128;
 
 //--------------------------------------------
 static int command_send(uint8_t *buf, size_t size)
@@ -377,6 +378,7 @@ static void init(HANDLE hndl)
 	dev = hndl;
 	command_sync_send();
 	command_set_chan_aa_phy_send(37, (uint8_t *)adv_channel_access_address, PHY_1M, ADV_CHANNEL_CRC_INIT);
+	command_rssi_filt_send(min_rssi);
 	command_pause_done_send(0);
 	command_follow_send(1);
 	command_mac_filt_reset_send();
@@ -440,6 +442,7 @@ static void follow(uint8_t *buf, size_t size)
 	else
 	{
 		command_set_chan_aa_phy_send(37, (uint8_t *)adv_channel_access_address, PHY_1M, ADV_CHANNEL_CRC_INIT);
+		command_rssi_filt_send(min_rssi);
 		command_pause_done_send(0);
 		command_follow_send(1);
 		command_mac_filt_reset_send();
@@ -449,10 +452,16 @@ static void follow(uint8_t *buf, size_t size)
 }
 
 //--------------------------------------------
+static void min_rssi_set(int8_t rssi)
+{
+	min_rssi = rssi;
+}
+
+//--------------------------------------------
 static void close_free(void)
 {
 	list_adv_remove_all(&adv_devs);
 }
 
 //--------------------------------------------
-SNIFFER(sniffer_sniffle, "S", 2000000, 0, init, serial_packet_decode, follow, NULL, NULL, NULL, close_free);
+SNIFFER(sniffer_sniffle, "S", 2000000, 0, init, serial_packet_decode, follow, NULL, NULL, NULL, min_rssi_set, close_free);

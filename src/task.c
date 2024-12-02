@@ -71,6 +71,7 @@ void print_usage(void)
 	printf("                     '272' - LINKTYPE_NORDIC_BLE\n");
 	printf("  -n                 Don't try to decrypt\n");
 	printf("  -L <LTK>           LTK key for decrypting packets\n");
+	printf("  -R <RSSI>          Filter sniffer packets by minimum RSSI\n");
 #ifdef WIN32
 	printf("  -W <path to Wireshark>   Path to Wireshark.exe\n");
 	printf("\nExamples:\n");
@@ -92,7 +93,6 @@ void print_usage(void)
 //--------------------------------------------
 int task_start(task_settings_t *ts, int gui)
 {
-	int baudr = 0;
 	int dlt = 0;
 	int res;
 
@@ -142,17 +142,28 @@ int task_start(task_settings_t *ts, int gui)
 			print_usage();
 			return TASK_ERROR_USAGE;
 		}
+		int baudr = 0;
 		if (ts->opt_b)
 		{
 			baudr = atoi(ts->opt_b_arg);
 		}
-		if (!get_sniffer(ts->opt_s_arg))
+		const sniffer_t *sniffer = get_sniffer(ts->opt_s_arg);
+		if (!sniffer)
 		{
 			printf("This -s option argument is not supported.\n\n");
 			print_usage();
 			return TASK_ERROR_USAGE;
 		}
-		if ((res = thread_sniff_init(ts->opt_p_arg, get_sniffer(ts->opt_s_arg), baudr)) < 0)
+		if (ts->opt_R)
+		{
+			int rssi;
+			rssi = atoi(ts->opt_R_arg);
+			if (sniffer->min_rssi_set)
+			{
+				sniffer->min_rssi_set((int8_t)rssi);
+			}
+		}
+		if ((res = thread_sniff_init(ts->opt_p_arg, sniffer, baudr)) < 0)
 		{
 			return res;
 		}
