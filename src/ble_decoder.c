@@ -836,6 +836,10 @@ static ble_packet_decode_res_t packet_decode(ble_info_t *info, uint8_t recursion
 	{
 		// advertising channel packet
 		info->pdu = PDU_ADV;
+		if (info->channel != -1 && info->channel < 37)
+		{
+			info->pdu = PDU_AUX_ADV;
+		}
 		header_flags = buf[ACCESS_ADDRESS_LENGTH];
 		header_length = buf[ACCESS_ADDRESS_LENGTH + 1];
 
@@ -872,7 +876,7 @@ static ble_packet_decode_res_t packet_decode(ble_info_t *info, uint8_t recursion
 			list_adv_add_replace(&adv_devs, adv_addr, header_flags & CSA_MASK ? 1 : 0, header_flags & TXADD_MASK ? 1 : 0);
 			break;
 		}
-		case CONNECT_REQ:
+		case CONNECT_IND:
 			if (header_length != CONNECT_REQ_PDU_LENGTH)
 			{
 				// corrupted packet

@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
 	signal(SIGINT, signal_handler);
 #endif
 
-	while ((option = getopt(argc, argv, "s:p:b:r:w:l:W:nL:R:")) != -1)
+	while ((option = getopt(argc, argv, "s:p:b:r:w:l:W:nL:R:e")) != -1)
 	{
 		switch (option)
 		{
@@ -103,6 +103,9 @@ int main(int argc, char *argv[])
 		case 'R':
 			ts.opt_R = 1;
 			ts.opt_R_arg = optarg;
+			break;
+		case 'e':
+			ts.opt_e = 1;
 			break;
 		default: // '?'
 			print_usage();

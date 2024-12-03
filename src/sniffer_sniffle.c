@@ -65,6 +65,7 @@ static uint8_t cmd_buf[MAX_MSG_SIZE];
 static list_adv_t *adv_devs;
 static uint64_t timestamp_initial_us;
 static int8_t min_rssi = -128;
+static uint8_t aux_adv;
 
 //--------------------------------------------
 static int command_send(uint8_t *buf, size_t size)
@@ -209,9 +210,7 @@ static int packet_decode(uint8_t *buf, size_t len, ble_info_t **info)
 	static uint32_t data_channel_crc_init;
 	static uint32_t timestamp_previous_us;
 	static size_t timestamp_wraps;
-#if 0   // from version 1.4 is no longer required?
-	static int abort;
-#endif
+	static int data_pdu;
 	uint32_t timestamp_us;
 	uint16_t length;
 
@@ -253,9 +252,6 @@ static int packet_decode(uint8_t *buf, size_t len, ble_info_t **info)
 		timestamp_initial_us = get_usec_since_epoch() - timestamp_us;
 		timestamp_previous_us = 0;
 		timestamp_wraps = 0;
-#if 0   // from version 1.4 is no longer required?
-		abort = 0;
-#endif
 		msg_to_cli_add_print_command("%s", "Sniffle hardware detected and started.\n");
 	}
 
@@ -308,12 +304,17 @@ static int packet_decode(uint8_t *buf, size_t len, ble_info_t **info)
 		uint8_t adv_addr[DEVICE_ADDRESS_LENGTH];
 
 		memcpy((*info)->buf, adv_channel_access_address, ACCESS_ADDRESS_LENGTH);
-		if (((((*info)->buf)[ACCESS_ADDRESS_LENGTH]) & PDU_TYPE_MASK) == CONNECT_REQ)
+		if (((((*info)->buf)[ACCESS_ADDRESS_LENGTH]) & PDU_TYPE_MASK) == CONNECT_IND)
 		{
+			data_pdu = 1;
 			memcpy(&data_channel_access_address[0], (*info)->buf + ACCESS_ADDRESS_LENGTH + MINIMUM_HEADER_LENGTH + DEVICE_ADDRESS_LENGTH + DEVICE_ADDRESS_LENGTH, ACCESS_ADDRESS_LENGTH);
 			data_channel_crc_init = (((*info)->buf)[ACCESS_ADDRESS_LENGTH + MINIMUM_HEADER_LENGTH + DEVICE_ADDRESS_LENGTH + DEVICE_ADDRESS_LENGTH + ACCESS_ADDRESS_LENGTH]) |
 				(((*info)->buf)[ACCESS_ADDRESS_LENGTH + MINIMUM_HEADER_LENGTH + DEVICE_ADDRESS_LENGTH + DEVICE_ADDRESS_LENGTH + ACCESS_ADDRESS_LENGTH + 1] << 8) |
 				(((*info)->buf)[ACCESS_ADDRESS_LENGTH + MINIMUM_HEADER_LENGTH + DEVICE_ADDRESS_LENGTH + DEVICE_ADDRESS_LENGTH + ACCESS_ADDRESS_LENGTH + 2] << 16);
+		}
+		else
+		{
+			data_pdu = 0;
 		}
 
 		(*info)->dir = DIR_UNKNOWN;
@@ -331,30 +332,25 @@ static int packet_decode(uint8_t *buf, size_t len, ble_info_t **info)
 	}
 	else
 	{
-#if 0   // from version 1.4 is no longer required?
-		// data channel packet
-		if (data_channel_access_address[0] == 0 &&
-			data_channel_access_address[1] == 0 &&
-			data_channel_access_address[2] == 0 &&
-			data_channel_access_address[3] == 0)
+		if (data_pdu)
 		{
-			// Data packet without advertising
-			// This happens when the program restarts and the sniffer continues
-			// to give data packets from the previous connection session,
-			// because the sniffer reset command could not be found
-			free((*info)->buf);
-			free(*info);
-			*info = NULL;
-			if (!abort)
-			{
-				msg_to_cli_add_print_command("%s", "BLE data packets without connection detected.\n");
-				msg_to_cli_add_print_command("%s", "Please terminate previous BLE connection or exit the program, reset(replug) the sniffer and restart the program.\n");
-			}
-			abort = 1;
-			return -1;
+			memcpy((*info)->buf, data_channel_access_address, ACCESS_ADDRESS_LENGTH);
 		}
-#endif
-		memcpy((*info)->buf, data_channel_access_address, ACCESS_ADDRESS_LENGTH);
+		else
+		{
+			memcpy((*info)->buf, adv_channel_access_address, ACCESS_ADDRESS_LENGTH);
+			if (((((*info)->buf)[ACCESS_ADDRESS_LENGTH]) & PDU_TYPE_MASK) == AUX_CONNECT_REQ)
+			{
+				memcpy(data_channel_access_address, (*info)->buf + ACCESS_ADDRESS_LENGTH + MINIMUM_HEADER_LENGTH + DEVICE_ADDRESS_LENGTH + DEVICE_ADDRESS_LENGTH, ACCESS_ADDRESS_LENGTH);
+				data_channel_crc_init = (((*info)->buf)[ACCESS_ADDRESS_LENGTH + MINIMUM_HEADER_LENGTH + DEVICE_ADDRESS_LENGTH + DEVICE_ADDRESS_LENGTH + ACCESS_ADDRESS_LENGTH]) |
+					(((*info)->buf)[ACCESS_ADDRESS_LENGTH + MINIMUM_HEADER_LENGTH + DEVICE_ADDRESS_LENGTH + DEVICE_ADDRESS_LENGTH + ACCESS_ADDRESS_LENGTH + 1] << 8) |
+					(((*info)->buf)[ACCESS_ADDRESS_LENGTH + MINIMUM_HEADER_LENGTH + DEVICE_ADDRESS_LENGTH + DEVICE_ADDRESS_LENGTH + ACCESS_ADDRESS_LENGTH + 2] << 16);
+			}
+			else if (((((*info)->buf)[ACCESS_ADDRESS_LENGTH]) & PDU_TYPE_MASK) == AUX_CONNECT_RSP)
+			{
+				data_pdu = 1;
+			}
+		}
 	}
 	if ((*info)->status_crc)
 	{
@@ -382,7 +378,7 @@ static void init(HANDLE hndl)
 	command_pause_done_send(0);
 	command_follow_send(1);
 	command_mac_filt_reset_send();
-	command_aux_adv_send(0);
+	command_aux_adv_send(aux_adv);
 	command_mark_and_flash_send();
 }
 
@@ -436,7 +432,7 @@ static void follow(uint8_t *buf, size_t size)
 		memcpy_reverse(adv_addr, buf, DEVICE_ADDRESS_LENGTH);
 		command_mac_filt_send(adv_addr);
 		command_adv_hop_send();
-		command_aux_adv_send(0);
+		command_aux_adv_send(aux_adv);
 		command_mark_and_flash_send();
 	}
 	else
@@ -446,7 +442,7 @@ static void follow(uint8_t *buf, size_t size)
 		command_pause_done_send(0);
 		command_follow_send(1);
 		command_mac_filt_reset_send();
-		command_aux_adv_send(0);
+		command_aux_adv_send(aux_adv);
 		command_mark_and_flash_send();
 	}
 }
@@ -458,10 +454,16 @@ static void min_rssi_set(int8_t rssi)
 }
 
 //--------------------------------------------
+static void follow_aux_connect(uint8_t follow)
+{
+	aux_adv = follow;
+}
+
+//--------------------------------------------
 static void close_free(void)
 {
 	list_adv_remove_all(&adv_devs);
 }
 
 //--------------------------------------------
-SNIFFER(sniffer_sniffle, "S", 2000000, 0, init, serial_packet_decode, follow, NULL, NULL, NULL, min_rssi_set, close_free);
+SNIFFER(sniffer_sniffle, "S", 2000000, 0, init, serial_packet_decode, follow, NULL, NULL, NULL, min_rssi_set, follow_aux_connect, close_free);

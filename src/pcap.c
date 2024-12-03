@@ -126,10 +126,14 @@ size_t pcap_packet_create(uint32_t dlt, ble_info_t *info, uint8_t *packet)
 		ble_ll_hdr.flags |= 0x0002;  // Signal Power Valid: True
 		// Noise Power Valid: False
 		ble_ll_hdr.flags |= (info->status_enc == ENC_DECRYPTED) ? 0x0008 : 0x0000; // Decrypted
-		if (info->pdu == PDU_ADV)
+		if (info->pdu == PDU_ADV || info->pdu == PDU_AUX_ADV)
 		{
 			ble_ll_hdr.ref_access_address = *(uint32_t *)adv_channel_access_address;
 			ble_ll_hdr.flags |= 0x0010;  // Reference Access Address Valid: True
+			if (info->pdu == PDU_AUX_ADV)
+			{
+				ble_ll_hdr.flags |= 0x0080;  // PDU Type
+			}
 		}
 		// Access Address Offenses Valid: False
 		// Channel Aliased: False

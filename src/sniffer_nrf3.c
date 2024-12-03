@@ -576,4 +576,4 @@ static void close_free(void)
 }
 
 //--------------------------------------------
-SNIFFER(sniffer_nrf3, "N3", 1000000, 1, init, serial_packet_decode, follow, passkey_set, oob_key_set, NULL, min_rssi_set, close_free);
+SNIFFER(sniffer_nrf3, "N3", 1000000, 1, init, serial_packet_decode, follow, passkey_set, oob_key_set, NULL, min_rssi_set, NULL, close_free);

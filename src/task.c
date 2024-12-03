@@ -72,6 +72,7 @@ void print_usage(void)
 	printf("  -n                 Don't try to decrypt\n");
 	printf("  -L <LTK>           LTK key for decrypting packets\n");
 	printf("  -R <RSSI>          Filter sniffer packets by minimum RSSI\n");
+	printf("  -e                 Sniffle follow connections on secondary advertising channels\n");
 #ifdef WIN32
 	printf("  -W <path to Wireshark>   Path to Wireshark.exe\n");
 	printf("\nExamples:\n");
@@ -163,6 +164,17 @@ int task_start(task_settings_t *ts, int gui)
 				sniffer->min_rssi_set((int8_t)rssi);
 			}
 		}
+		if (ts->opt_e)
+		{
+			if (sniffer->follow_aux_connect)
+			{
+				sniffer->follow_aux_connect(ts->opt_e);
+			}
+			else
+			{
+				printf("Warning: The -e option is ignored for all sniffers except Sniffle.\n");
+			}
+		}
 		if ((res = thread_sniff_init(ts->opt_p_arg, sniffer, baudr)) < 0)
 		{
 			return res;
@@ -178,6 +190,14 @@ int task_start(task_settings_t *ts, int gui)
 		if (ts->opt_b)
 		{
 			printf("Warning: The -b option is ignored with the -r option.\n");
+		}
+		if (ts->opt_R)
+		{
+			printf("Warning: The -R option is ignored with the -r option.\n");
+		}
+		if (ts->opt_e)
+		{
+			printf("Warning: The -e option is ignored with the -r option.\n");
 		}
 		if ((res = thread_pcap_r_init(ts->opt_r_arg)) < 0)
 		{

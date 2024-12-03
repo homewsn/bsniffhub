@@ -45,7 +45,8 @@ typedef enum
 typedef enum
 {
 	PDU_DATA = 0,
-	PDU_ADV = 1
+	PDU_ADV = 1,
+	PDU_AUX_ADV = 2
 } pdu_type_t;
 
 typedef enum

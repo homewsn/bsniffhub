@@ -28,6 +28,7 @@ typedef struct task_settings
 	int opt_W;
 	int opt_L;
 	int opt_R;
+	int opt_e;
 	char *opt_s_arg;
 	char *opt_p_arg;
 	char *opt_b_arg;

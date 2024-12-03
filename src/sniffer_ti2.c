@@ -420,4 +420,4 @@ static void close_free(void)
 }
 
 //--------------------------------------------
-SNIFFER(sniffer_ti2, "T", 3000000, 0, init, serial_packet_decode, follow, NULL, NULL, NULL, min_rssi_set, close_free);
+SNIFFER(sniffer_ti2, "T", 3000000, 0, init, serial_packet_decode, follow, NULL, NULL, NULL, min_rssi_set, NULL, close_free);
