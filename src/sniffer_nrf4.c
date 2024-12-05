@@ -97,6 +97,7 @@ static uint16_t host_to_sniffer_msg_cnt;
 static list_adv_t *adv_devs;
 static uint64_t timestamp_initial_us;
 static int8_t min_rssi = -128;
+static uint8_t adv_channel;
 
 //--------------------------------------------
 static int slip_encode(uint8_t *dst, const uint8_t *src, size_t src_len)
@@ -308,7 +309,14 @@ static void command_send(uint8_t *buf, size_t len)
 		if (buf[5] == PING_RESP)
 		{
 			msg_to_cli_add_print_command("%s", "nRF Sniffer for Bluetooth LE detected.\n");
-			command_set_adv_channel_hop_seq_v1_send(adv_channels, sizeof(adv_channels));
+			if (adv_channel)
+			{
+				command_set_adv_channel_hop_seq_v1_send(&adv_channel, 1);
+			}
+			else
+			{
+				command_set_adv_channel_hop_seq_v1_send(adv_channels, sizeof(adv_channels));
+			}
 			command_req_scan_cont_v1_send();
 			command_set_temporary_key_v1_send(tmp_key, sizeof(tmp_key));
 			last_cmd = SENT_CMD_REQ_SCAN_CONT;
@@ -596,10 +604,16 @@ static void min_rssi_set(int8_t rssi)
 }
 
 //--------------------------------------------
+static void adv_channel_set(uint8_t channel)
+{
+	adv_channel = channel;
+}
+
+//--------------------------------------------
 static void close_free(void)
 {
 	list_adv_remove_all(&adv_devs);
 }
 
 //--------------------------------------------
-SNIFFER(sniffer_nrf4, "N4", 1000000, 1, init, serial_packet_decode, follow, passkey_set, oob_key_set, NULL, min_rssi_set, NULL, close_free);
+SNIFFER(sniffer_nrf4, "N4", 1000000, 1, init, serial_packet_decode, follow, passkey_set, oob_key_set, NULL, min_rssi_set, adv_channel_set, NULL, close_free);

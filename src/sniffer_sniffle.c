@@ -66,6 +66,7 @@ static list_adv_t *adv_devs;
 static uint64_t timestamp_initial_us;
 static int8_t min_rssi = -128;
 static uint8_t aux_adv;
+static uint8_t adv_channel = 37;
 
 //--------------------------------------------
 static int command_send(uint8_t *buf, size_t size)
@@ -373,7 +374,7 @@ static void init(HANDLE hndl)
 	timestamp_initial_us = 0;
 	dev = hndl;
 	command_sync_send();
-	command_set_chan_aa_phy_send(37, (uint8_t *)adv_channel_access_address, PHY_1M, ADV_CHANNEL_CRC_INIT);
+	command_set_chan_aa_phy_send(adv_channel, (uint8_t *)adv_channel_access_address, PHY_1M, ADV_CHANNEL_CRC_INIT);
 	command_rssi_filt_send(min_rssi);
 	command_pause_done_send(0);
 	command_follow_send(1);
@@ -426,7 +427,7 @@ static void follow(uint8_t *buf, size_t size)
 	item = list_adv_find_addr(&adv_devs, buf);
 	if (item)
 	{
-		command_set_chan_aa_phy_send(37, (uint8_t *)adv_channel_access_address, PHY_1M, ADV_CHANNEL_CRC_INIT);
+		command_set_chan_aa_phy_send(adv_channel, (uint8_t *)adv_channel_access_address, PHY_1M, ADV_CHANNEL_CRC_INIT);
 		command_pause_done_send(0);
 		command_follow_send(1);
 		memcpy_reverse(adv_addr, buf, DEVICE_ADDRESS_LENGTH);
@@ -437,7 +438,7 @@ static void follow(uint8_t *buf, size_t size)
 	}
 	else
 	{
-		command_set_chan_aa_phy_send(37, (uint8_t *)adv_channel_access_address, PHY_1M, ADV_CHANNEL_CRC_INIT);
+		command_set_chan_aa_phy_send(adv_channel, (uint8_t *)adv_channel_access_address, PHY_1M, ADV_CHANNEL_CRC_INIT);
 		command_rssi_filt_send(min_rssi);
 		command_pause_done_send(0);
 		command_follow_send(1);
@@ -454,6 +455,12 @@ static void min_rssi_set(int8_t rssi)
 }
 
 //--------------------------------------------
+static void adv_channel_set(uint8_t channel)
+{
+	adv_channel = channel;
+}
+
+//--------------------------------------------
 static void follow_aux_connect(uint8_t follow)
 {
 	aux_adv = follow;
@@ -466,4 +473,4 @@ static void close_free(void)
 }
 
 //--------------------------------------------
-SNIFFER(sniffer_sniffle, "S", 2000000, 0, init, serial_packet_decode, follow, NULL, NULL, NULL, min_rssi_set, follow_aux_connect, close_free);
+SNIFFER(sniffer_sniffle, "S", 2000000, 0, init, serial_packet_decode, follow, NULL, NULL, NULL, min_rssi_set, adv_channel_set, follow_aux_connect, close_free);

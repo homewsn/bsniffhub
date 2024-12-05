@@ -46,11 +46,11 @@ void print_usage(void)
 {
 	printf("Usage:\n");
 #ifdef WIN32
-	printf("  bsniffhub -s <sniffer> -p <serport> [-b <baudrate>] [-w <outfile>] [-l <link type>] [-n] [-W <path to Wireshark>]\n");
-	printf("  bsniffhub -r <infile> [-w <outfile>] [-l <link type>] [-n] [-W <path to Wireshark>]\n\n");
+	printf("  bsniffhub -s <sniffer> -p <serport> [-b <baudrate>] [-w <outfile>] [-l <link type>] [-n] [-L <LTK>] [-R <RSSI>] [-e] [-c <channel>] [-W <path to Wireshark>]\n");
+	printf("  bsniffhub -r <infile> [-w <outfile>] [-l <link type>] [-n] [-L <LTK>] [-W <path to Wireshark>]\n\n");
 #else
-	printf("  bsniffhub -s <sniffer> -p <serport> [-b <baudrate>] [-w <outfile>] [-l <link type>] [-n]\n");
-	printf("  bsniffhub -r <infile> [-w <outfile>] [-l <link type>] [-n]\n\n");
+	printf("  bsniffhub -s <sniffer> -p <serport> [-b <baudrate>] [-w <outfile>] [-l <link type>] [-n] [-L <LTK>] [-R <RSSI>] [-e] [-c <channel>]\n");
+	printf("  bsniffhub -r <infile> [-w <outfile>] [-l <link type>] [-n] [-L <LTK>]\n\n");
 #endif
 	printf("Mandatory arguments for sniffer device input:\n");
 	printf("  -s <sniffer>       Sniffer device:\n");
@@ -73,6 +73,7 @@ void print_usage(void)
 	printf("  -L <LTK>           LTK key for decrypting packets\n");
 	printf("  -R <RSSI>          Filter sniffer packets by minimum RSSI\n");
 	printf("  -e                 Sniffle follow connections on secondary advertising channels\n");
+	printf("  -c <channel>       Primary advertising channel to listen on: 37, 38 or 39\n");
 #ifdef WIN32
 	printf("  -W <path to Wireshark>   Path to Wireshark.exe\n");
 	printf("\nExamples:\n");
@@ -175,6 +176,21 @@ int task_start(task_settings_t *ts, int gui)
 				printf("Warning: The -e option is ignored for all sniffers except Sniffle.\n");
 			}
 		}
+		if (ts->opt_c)
+		{
+			int channel;
+			channel = atoi(ts->opt_c_arg);
+			if (channel > 39 || channel < 37)
+			{
+				printf("This -c option argument is not supported.\n\n");
+				print_usage();
+				return TASK_ERROR_USAGE;
+			}
+			if (sniffer->adv_channel_set)
+			{
+				sniffer->adv_channel_set((uint8_t)channel);
+			}
+		}
 		if ((res = thread_sniff_init(ts->opt_p_arg, sniffer, baudr)) < 0)
 		{
 			return res;
@@ -198,6 +214,10 @@ int task_start(task_settings_t *ts, int gui)
 		if (ts->opt_e)
 		{
 			printf("Warning: The -e option is ignored with the -r option.\n");
+		}
+		if (ts->opt_c)
+		{
+			printf("Warning: The -c option is ignored with the -r option.\n");
 		}
 		if ((res = thread_pcap_r_init(ts->opt_r_arg)) < 0)
 		{

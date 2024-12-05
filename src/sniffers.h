@@ -30,13 +30,14 @@ typedef struct sniffer
 	void(*oob_key_set)(uint8_t *buf, size_t size);
 	void(*ltk_set)(uint8_t *buf, size_t size);
 	void(*min_rssi_set)(int8_t rssi);
+	void(*adv_channel_set)(uint8_t channel);
 	void(*follow_aux_connect)(uint8_t follow);
 	void(*close)(void);
 } sniffer_t;
 
 //--------------------------------------------
-#define SNIFFER(name, id, baudrate, flow_control, init, decode, follow, passkey_set, oob_key_set, ltk_set, min_rssi_set, follow_aux_connect, close) \
-	const sniffer_t name = { id, baudrate, flow_control, init, decode, follow, passkey_set, oob_key_set, ltk_set, min_rssi_set, follow_aux_connect, close }
+#define SNIFFER(name, id, baudrate, flow_control, init, decode, follow, passkey_set, oob_key_set, ltk_set, min_rssi_set, adv_channel_set, follow_aux_connect, close) \
+	const sniffer_t name = { id, baudrate, flow_control, init, decode, follow, passkey_set, oob_key_set, ltk_set, min_rssi_set, adv_channel_set, follow_aux_connect, close }
 
 //--------------------------------------------
 #define SNIFFERS(...) \

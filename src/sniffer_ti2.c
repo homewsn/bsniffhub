@@ -61,7 +61,9 @@
 #define CMD_PING                        { 0x40, 0x53, 0x40, 0x00, 0x00, 0x40, 0x40, 0x45 }
 #define CMD_STOP                        { 0x40, 0x53, 0x42, 0x00, 0x00, 0x42, 0x40, 0x45 }
 #define CMD_CFG_PHY                     { 0x40, 0x53, 0x47, 0x01, 0x00, 0xFF, 0xFC, 0x40, 0x45 }
-#define CMD_CFG_FREQUENCY               { 0x40, 0x53, 0x45, 0x04, 0x00, 0x62, 0x09, 0x00, 0x00, 0xB4, 0x40, 0x45 }
+#define CMD_CFG_FREQUENCY_37            { 0x40, 0x53, 0x45, 0x04, 0x00, 0x62, 0x09, 0x00, 0x00, 0xB4, 0x40, 0x45 }
+#define CMD_CFG_FREQUENCY_38            { 0x40, 0x53, 0x45, 0x04, 0x00, 0x7A, 0x09, 0x00, 0x00, 0xCC, 0x40, 0x45 }
+#define CMD_CFG_FREQUENCY_39            { 0x40, 0x53, 0x45, 0x04, 0x00, 0xB0, 0x09, 0x00, 0x00, 0x02, 0x40, 0x45 }
 #define CMD_CFG_BLE_INITIATOR_ADDRESS   { 0x40, 0x53, 0x70, 0x06, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFC, 0x40, 0x45 }
 #define CMD_START                       { 0x40, 0x53, 0x41, 0x00, 0x00, 0x41, 0x40, 0x45 }
 
@@ -79,7 +81,9 @@
 static const uint8_t cmd_ping[] = CMD_PING;
 static const uint8_t cmd_stop[] = CMD_STOP;
 static uint8_t cmd_cfg_phy[] = CMD_CFG_PHY;
-static const uint8_t cmd_cfg_frequency[] = CMD_CFG_FREQUENCY;
+static const uint8_t cmd_cfg_frequency_37[] = CMD_CFG_FREQUENCY_37;
+static const uint8_t cmd_cfg_frequency_38[] = CMD_CFG_FREQUENCY_38;
+static const uint8_t cmd_cfg_frequency_39[] = CMD_CFG_FREQUENCY_39;
 static uint8_t cmd_cfg_ble_initiator_address[] = CMD_CFG_BLE_INITIATOR_ADDRESS;
 static const uint8_t cmd_start[] = CMD_START;
 
@@ -103,6 +107,7 @@ static list_adv_t *adv_devs;
 static uint64_t timestamp_initial_us;
 static uint8_t hello;
 static int8_t min_rssi = -128;
+static uint8_t adv_channel = 37;
 
 //--------------------------------------------
 static uint8_t fcs_calc(uint8_t *buf, size_t len)
@@ -191,7 +196,18 @@ static void command_send(uint8_t *buf, size_t len)
 		break;
 	case SENT_CMD_CFG_PHY:
 		assert(len == 9);
-		serial_write(dev, cmd_cfg_frequency, sizeof(cmd_cfg_frequency));
+		switch (adv_channel)
+		{
+		case 37:
+			serial_write(dev, cmd_cfg_frequency_37, sizeof(cmd_cfg_frequency_37));
+			break;
+		case 38:
+			serial_write(dev, cmd_cfg_frequency_38, sizeof(cmd_cfg_frequency_38));
+			break;
+		case 39:
+			serial_write(dev, cmd_cfg_frequency_39, sizeof(cmd_cfg_frequency_39));
+			break;
+		}
 		last_cmd = SENT_CMD_CFG_FREQUENCY;
 		break;
 	case SENT_CMD_CFG_FREQUENCY:
@@ -414,10 +430,16 @@ static void min_rssi_set(int8_t rssi)
 }
 
 //--------------------------------------------
+static void adv_channel_set(uint8_t channel)
+{
+	adv_channel = channel;
+}
+
+//--------------------------------------------
 static void close_free(void)
 {
 	list_adv_remove_all(&adv_devs);
 }
 
 //--------------------------------------------
-SNIFFER(sniffer_ti2, "T", 3000000, 0, init, serial_packet_decode, follow, NULL, NULL, NULL, min_rssi_set, NULL, close_free);
+SNIFFER(sniffer_ti2, "T", 3000000, 0, init, serial_packet_decode, follow, NULL, NULL, NULL, min_rssi_set, adv_channel_set, NULL, close_free);

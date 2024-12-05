@@ -47,7 +47,7 @@ static HANDLE dev;
 static list_adv_t *adv_devs;
 static uint64_t timestamp_initial_us;
 static int8_t min_rssi = -128;
-static uint8_t adv_channel = 39;
+static uint8_t adv_channel = 37;
 
 //--------------------------------------------
 static int command_set_enable_send(uint8_t state, uint8_t channel)
@@ -94,7 +94,7 @@ static int packet_decode(uint8_t *buf, size_t len, ble_info_t **info)
 		return 0;
 	default:
 		// unknown message
-#if 1
+#if 0
 		assert(0);
 #endif
 		return 0;
@@ -194,7 +194,7 @@ static void init(HANDLE hndl)
 	list_adv_remove_all(&adv_devs);
 	timestamp_initial_us = 0;
 	dev = hndl;
-	command_set_enable_send(0, 37);
+	command_set_enable_send(0, adv_channel);
 	sleep(1);
 	command_set_enable_send(1, adv_channel);
 }
@@ -264,10 +264,16 @@ static void min_rssi_set(int8_t rssi)
 }
 
 //--------------------------------------------
+static void adv_channel_set(uint8_t channel)
+{
+	adv_channel = channel;
+}
+
+//--------------------------------------------
 static void close_free(void)
 {
 	list_adv_remove_all(&adv_devs);
 }
 
 //--------------------------------------------
-SNIFFER(sniffer_stm32wb, "WB", 921600, 0, init, serial_packet_decode, follow, NULL, NULL, NULL, min_rssi_set, NULL, close_free);
+SNIFFER(sniffer_stm32wb, "WB", 921600, 0, init, serial_packet_decode, follow, NULL, NULL, NULL, min_rssi_set, adv_channel_set, NULL, close_free);
