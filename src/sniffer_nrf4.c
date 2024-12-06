@@ -98,6 +98,9 @@ static list_adv_t *adv_devs;
 static uint64_t timestamp_initial_us;
 static int8_t min_rssi = -128;
 static uint8_t adv_channel;
+static uint8_t mac_addr[DEVICE_ADDRESS_LENGTH];
+static uint8_t mac_addr_type;
+static uint8_t mac_filt;
 
 //--------------------------------------------
 static int slip_encode(uint8_t *dst, const uint8_t *src, size_t src_len)
@@ -317,8 +320,15 @@ static void command_send(uint8_t *buf, size_t len)
 			{
 				command_set_adv_channel_hop_seq_v1_send(adv_channels, sizeof(adv_channels));
 			}
-			command_req_scan_cont_v1_send();
-			command_set_temporary_key_v1_send(tmp_key, sizeof(tmp_key));
+			if (mac_filt)
+			{
+				command_req_follow_v1_send(mac_addr, mac_addr_type, 0);
+			}
+			else
+			{
+				command_req_scan_cont_v1_send();
+				command_set_temporary_key_v1_send(tmp_key, sizeof(tmp_key));
+			}
 			last_cmd = SENT_CMD_REQ_SCAN_CONT;
 			msg_to_cli_add_print_command("%s", "nRF Sniffer for Bluetooth LE starts.\n");
 		}
@@ -446,7 +456,7 @@ static int packet_decode(uint8_t *buf, size_t len, ble_info_t **info, uint8_t pa
 		(*info)->dir = DIR_UNKNOWN;
 
 		header_flags = ((*info)->buf)[ACCESS_ADDRESS_LENGTH];
-		if ((header_flags & PDU_TYPE_MASK) == ADV_IND)
+		if (((header_flags & PDU_TYPE_MASK) == ADV_IND) && !mac_filt)
 		{
 			memcpy_reverse(adv_addr, &((*info)->buf)[ACCESS_ADDRESS_LENGTH + MINIMUM_HEADER_LENGTH], DEVICE_ADDRESS_LENGTH);
 			if (!list_adv_find_addr(&adv_devs, adv_addr))
@@ -556,10 +566,8 @@ static void follow(uint8_t *buf, size_t size)
 	}
 	else
 	{
-		uint8_t key[16] = { 0 };
-
 		command_req_scan_cont_v1_send();
-		command_set_temporary_key_v1_send(key, sizeof(key));
+		command_set_temporary_key_v1_send(tmp_key, sizeof(tmp_key));
 	}
 }
 
@@ -610,10 +618,19 @@ static void adv_channel_set(uint8_t channel)
 }
 
 //--------------------------------------------
+static void mac_addr_set(uint8_t *buf, uint8_t addr_type)
+{
+	mac_addr_type = addr_type;
+	memcpy(mac_addr, buf, DEVICE_ADDRESS_LENGTH);
+	mac_filt = 1;
+}
+
+//--------------------------------------------
 static void close_free(void)
 {
 	list_adv_remove_all(&adv_devs);
 }
 
 //--------------------------------------------
-SNIFFER(sniffer_nrf4, "N4", 1000000, 1, init, serial_packet_decode, follow, passkey_set, oob_key_set, NULL, min_rssi_set, adv_channel_set, NULL, close_free);
+SNIFFER(sniffer_nrf4, "N4", 1000000, 1, init, serial_packet_decode, follow, passkey_set, oob_key_set, NULL,\
+	    min_rssi_set, adv_channel_set, mac_addr_set, NULL, close_free);

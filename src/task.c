@@ -14,6 +14,7 @@
 
 #include <stdint.h>     /* uint8_t ... uint64_t */
 #include <stdio.h>      /* printf */
+#include <stdio.h>      /* sscanf */
 #include <stdlib.h>     /* atoi */
 #include <string.h>     /* strlen */
 #include <ctype.h>      /* isdigit */
@@ -46,10 +47,10 @@ void print_usage(void)
 {
 	printf("Usage:\n");
 #ifdef WIN32
-	printf("  bsniffhub -s <sniffer> -p <serport> [-b <baudrate>] [-w <outfile>] [-l <link type>] [-n] [-L <LTK>] [-R <RSSI>] [-e] [-c <channel>] [-W <path to Wireshark>]\n");
+	printf("  bsniffhub -s <sniffer> -p <serport> [-b <baudrate>] [-w <outfile>] [-l <link type>] [-n] [-L <LTK>] [-R <RSSI>] [-e] [-c <channel>] [-m <MAC>] [-W <path to Wireshark>]\n");
 	printf("  bsniffhub -r <infile> [-w <outfile>] [-l <link type>] [-n] [-L <LTK>] [-W <path to Wireshark>]\n\n");
 #else
-	printf("  bsniffhub -s <sniffer> -p <serport> [-b <baudrate>] [-w <outfile>] [-l <link type>] [-n] [-L <LTK>] [-R <RSSI>] [-e] [-c <channel>]\n");
+	printf("  bsniffhub -s <sniffer> -p <serport> [-b <baudrate>] [-w <outfile>] [-l <link type>] [-n] [-L <LTK>] [-R <RSSI>] [-e] [-c <channel>] [-m <MAC>]\n");
 	printf("  bsniffhub -r <infile> [-w <outfile>] [-l <link type>] [-n] [-L <LTK>]\n\n");
 #endif
 	printf("Mandatory arguments for sniffer device input:\n");
@@ -74,6 +75,7 @@ void print_usage(void)
 	printf("  -R <RSSI>          Filter sniffer packets by minimum RSSI\n");
 	printf("  -e                 Sniffle follow connections on secondary advertising channels\n");
 	printf("  -c <channel>       Primary advertising channel to listen on: 37, 38 or 39\n");
+	printf("  -m <MAC>           Filter packets by advertiser MAC\n");
 #ifdef WIN32
 	printf("  -W <path to Wireshark>   Path to Wireshark.exe\n");
 	printf("\nExamples:\n");
@@ -191,6 +193,49 @@ int task_start(task_settings_t *ts, int gui)
 				sniffer->adv_channel_set((uint8_t)channel);
 			}
 		}
+		if (ts->opt_m)
+		{
+			uint8_t mac[6];
+			uint8_t mac_addr_type = 0;
+			int res;
+			char *buf;
+
+			buf = ts->opt_m_arg;
+			if (strlen(ts->opt_m_arg) != 17 && strlen(ts->opt_m_arg) != 18)
+			{
+				printf("The MAC address must be specified in colon-separated format, such as 12:34:56:78:9A:BC.\n\n");
+				printf("The MAC address may have an 'r' at the end if it is a random type, such as 12:34:56:78:9A:BCr.\n\n");
+				print_usage();
+				return TASK_ERROR_USAGE;
+			}
+			if (strlen(ts->opt_m_arg) == 18)
+			{
+				if (buf[17] == 'r')
+				{
+					mac_addr_type = 1;
+				}
+				else
+				{
+					printf("The MAC address may have an 'r' at the end if it is a random type, such as 12:34:56:78:9A:BCr.\n\n");
+					print_usage();
+					return TASK_ERROR_USAGE;
+				}
+			}
+			for (size_t cnt = 0; cnt < sizeof(mac); cnt++, buf += 3)
+			{
+				res = sscanf((const char *)buf, "%2hhx", &mac[cnt]);
+				if (!res)
+				{
+					printf("The MAC address must be specified in colon-separated format, such as 12:34:56:78:9A:BC.\n\n");
+					print_usage();
+					return TASK_ERROR_USAGE;
+				}
+			}
+			if (sniffer->mac_addr_set)
+			{
+				sniffer->mac_addr_set(mac, mac_addr_type);
+			}
+		}
 		if ((res = thread_sniff_init(ts->opt_p_arg, sniffer, baudr)) < 0)
 		{
 			return res;
@@ -218,6 +263,10 @@ int task_start(task_settings_t *ts, int gui)
 		if (ts->opt_c)
 		{
 			printf("Warning: The -c option is ignored with the -r option.\n");
+		}
+		if (ts->opt_m)
+		{
+			printf("Warning: The -m option is ignored with the -r option.\n");
 		}
 		if ((res = thread_pcap_r_init(ts->opt_r_arg)) < 0)
 		{

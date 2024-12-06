@@ -108,6 +108,8 @@ static uint64_t timestamp_initial_us;
 static uint8_t hello;
 static int8_t min_rssi = -128;
 static uint8_t adv_channel = 37;
+static uint8_t mac_addr[DEVICE_ADDRESS_LENGTH];
+static uint8_t mac_filt;
 
 //--------------------------------------------
 static uint8_t fcs_calc(uint8_t *buf, size_t len)
@@ -212,7 +214,14 @@ static void command_send(uint8_t *buf, size_t len)
 		break;
 	case SENT_CMD_CFG_FREQUENCY:
 		assert(len == 9);
-		memcpy(&cmd_cfg_ble_initiator_address[5], &initiator_address[0], 6);
+		if (mac_filt)
+		{
+			memcpy(&cmd_cfg_ble_initiator_address[5], mac_addr, DEVICE_ADDRESS_LENGTH);
+		}
+		else
+		{
+			memcpy(&cmd_cfg_ble_initiator_address[5], initiator_address, DEVICE_ADDRESS_LENGTH);
+		}
 		cmd_cfg_ble_initiator_address[11] = fcs_calc(&cmd_cfg_ble_initiator_address[2], 9);
 		serial_write(dev, cmd_cfg_ble_initiator_address, sizeof(cmd_cfg_ble_initiator_address));
 		last_cmd = SENT_CMD_CFG_BLE_INITIATOR_ADDRESS;
@@ -313,7 +322,7 @@ static int packet_decode(uint8_t *buf, size_t len, ble_info_t **info)
 		uint8_t adv_addr[DEVICE_ADDRESS_LENGTH];
 
 		header_flags = ((*info)->buf)[ACCESS_ADDRESS_LENGTH];
-		if ((header_flags & PDU_TYPE_MASK) == ADV_IND)
+		if (((header_flags & PDU_TYPE_MASK) == ADV_IND) && !mac_filt)
 		{
 			memcpy_reverse(adv_addr, &((*info)->buf)[ACCESS_ADDRESS_LENGTH + MINIMUM_HEADER_LENGTH], DEVICE_ADDRESS_LENGTH);
 			if (!list_adv_find_addr(&adv_devs, adv_addr))
@@ -436,10 +445,18 @@ static void adv_channel_set(uint8_t channel)
 }
 
 //--------------------------------------------
+static void mac_addr_set(uint8_t *buf, uint8_t addr_type)
+{
+	memcpy_reverse(mac_addr, buf, DEVICE_ADDRESS_LENGTH);
+	mac_filt = 1;
+}
+
+//--------------------------------------------
 static void close_free(void)
 {
 	list_adv_remove_all(&adv_devs);
 }
 
 //--------------------------------------------
-SNIFFER(sniffer_ti2, "T", 3000000, 0, init, serial_packet_decode, follow, NULL, NULL, NULL, min_rssi_set, adv_channel_set, NULL, close_free);
+SNIFFER(sniffer_ti2, "T", 3000000, 0, init, serial_packet_decode, follow, NULL, NULL, NULL,\
+	    min_rssi_set, adv_channel_set, mac_addr_set, NULL, close_free);

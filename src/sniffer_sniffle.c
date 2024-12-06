@@ -67,6 +67,8 @@ static uint64_t timestamp_initial_us;
 static int8_t min_rssi = -128;
 static uint8_t aux_adv;
 static uint8_t adv_channel = 37;
+static uint8_t mac_addr[DEVICE_ADDRESS_LENGTH];
+static uint8_t mac_filt;
 
 //--------------------------------------------
 static int command_send(uint8_t *buf, size_t size)
@@ -321,7 +323,7 @@ static int packet_decode(uint8_t *buf, size_t len, ble_info_t **info)
 		(*info)->dir = DIR_UNKNOWN;
 
 		header_flags = ((*info)->buf)[ACCESS_ADDRESS_LENGTH];
-		if ((header_flags & PDU_TYPE_MASK) == ADV_IND)
+		if (((header_flags & PDU_TYPE_MASK) == ADV_IND) && !mac_filt)
 		{
 			memcpy_reverse(adv_addr, &((*info)->buf)[ACCESS_ADDRESS_LENGTH + MINIMUM_HEADER_LENGTH], DEVICE_ADDRESS_LENGTH);
 			if (!list_adv_find_addr(&adv_devs, adv_addr))
@@ -378,7 +380,14 @@ static void init(HANDLE hndl)
 	command_rssi_filt_send(min_rssi);
 	command_pause_done_send(0);
 	command_follow_send(1);
-	command_mac_filt_reset_send();
+	if (mac_filt)
+	{
+		command_mac_filt_send(mac_addr);
+	}
+	else
+	{
+		command_mac_filt_reset_send();
+	}
 	command_aux_adv_send(aux_adv);
 	command_mark_and_flash_send();
 }
@@ -461,6 +470,13 @@ static void adv_channel_set(uint8_t channel)
 }
 
 //--------------------------------------------
+static void mac_addr_set(uint8_t *buf, uint8_t addr_type)
+{
+	memcpy_reverse(mac_addr, buf, DEVICE_ADDRESS_LENGTH);
+	mac_filt = 1;
+}
+
+//--------------------------------------------
 static void follow_aux_connect(uint8_t follow)
 {
 	aux_adv = follow;
@@ -473,4 +489,5 @@ static void close_free(void)
 }
 
 //--------------------------------------------
-SNIFFER(sniffer_sniffle, "S", 2000000, 0, init, serial_packet_decode, follow, NULL, NULL, NULL, min_rssi_set, adv_channel_set, follow_aux_connect, close_free);
+SNIFFER(sniffer_sniffle, "S", 2000000, 0, init, serial_packet_decode, follow, NULL, NULL, NULL,\
+	    min_rssi_set, adv_channel_set, mac_addr_set, follow_aux_connect, close_free);
