@@ -87,10 +87,11 @@ static void list_iface_load(void)
 static void list_sniff_load(void)
 {
 	list_lstbox_init(&list_sniff);
-	list_lstbox_add(&list_sniff, "S", "Sniffle v1.6/v1.7");
+	list_lstbox_add(&list_sniff, "S", "Sniffle v1.10");
 	list_lstbox_add(&list_sniff, "N3", "nRF Sniffer v3.x.0");
 	list_lstbox_add(&list_sniff, "N4", "nRF Sniffer v4.x.x");
 	list_lstbox_add(&list_sniff, "T", "SmartRF Packet Sniffer 2 v1.9/v1.10");
+	list_lstbox_add(&list_sniff, "WB", "STM32WB BLE Sniffer v1.1.0");
 }
 
 //--------------------------------------------
@@ -319,7 +320,7 @@ static int btn_start_action_cb(Ihandle* ih)
 {
 	int in_pcap_option;
 	int out_pcap_option;
-	task_settings_t ts;
+	task_settings_t ts = { 0 };
 	int res;
 
 	in_pcap_option = IupGetInt(tgl_in_pcap, "VALUE");
