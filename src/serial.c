@@ -25,7 +25,9 @@
 #include <sys/stat.h>   /* lstat, S_ISLNK */
 #include <libgen.h>     /* basename */
 #include <string.h>     /* memcpy, memset */
+#ifdef __linux__
 #include <linux/serial.h> /* struct serial_struct */
+#endif
 #endif
 #include <assert.h>     /* assert */
 #include <stdio.h>      /* sprintf */
@@ -427,8 +429,9 @@ void serial_enum(list_lstbox_t **list)
 							memset(devicedir, 0, sizeof(devicedir));
 							strcpy(devicedir, devdir);
 							strcat(devicedir, namelist[res]->d_name);
+#ifdef __linux__
 							int	fd;
-							if ((fd = open(devicedir, O_RDWR|O_NONBLOCK)) >= 0)
+							if ((fd = open(devicedir, O_RDWR | O_NONBLOCK)) >= 0)
 							{
 								struct serial_struct serinfo;
 								if (ioctl(fd, TIOCMGET, &serinfo) >= 0)
@@ -437,6 +440,9 @@ void serial_enum(list_lstbox_t **list)
 								}
 								close(fd);
 							}
+#else
+							list_lstbox_add(list, devicedir, devicedir);
+#endif
 						}
 					}
 				}
