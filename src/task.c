@@ -47,10 +47,10 @@ void print_usage(void)
 {
 	printf("Usage:\n");
 #ifdef WIN32
-	printf("  bsniffhub -s <sniffer> -p <serport> [-b <baudrate>] [-w <outfile>] [-l <link type>] [-c <channel>] [-n] [-L <LTK>] [-R <RSSI>] [-m <MAC>] [-e] [-W <path to Wireshark>]\n");
+	printf("  bsniffhub -s <sniffer> -p <serport> [-b <baudrate>] [-c <channel>] [-R <RSSI>] [-m <MAC>] [-e] [-w <outfile>] [-l <link type>] [-n] [-L <LTK>] [-W <path to Wireshark>]\n");
 	printf("  bsniffhub -r <infile> [-w <outfile>] [-l <link type>] [-n] [-L <LTK>] [-W <path to Wireshark>]\n\n");
 #else
-	printf("  bsniffhub -s <sniffer> -p <serport> [-b <baudrate>] [-w <outfile>] [-l <link type>] [-c <channel>] [-n] [-L <LTK>] [-R <RSSI>] [-m <MAC>] [-e]\n");
+	printf("  bsniffhub -s <sniffer> -p <serport> [-b <baudrate>] [-c <channel>] [-R <RSSI>] [-m <MAC>] [-e] [-w <outfile>] [-l <link type>] [-n] [-L <LTK>]\n");
 	printf("  bsniffhub -r <infile> [-w <outfile>] [-l <link type>] [-n] [-L <LTK>]\n\n");
 #endif
 	printf("Mandatory arguments for sniffer device input:\n");
@@ -62,7 +62,12 @@ void print_usage(void)
 	printf("                     'WB' - STM32WB BLE Sniffer v1.1.0\n");
 	printf("  -p <serport>       Serial port name\n\n");
 	printf("Optional argument for sniffer device input:\n");
-	printf("  -b <baudrate>      Serial port baudrate (def: from sniffer guide)\n\n");
+	printf("  -b <baudrate>      Serial port baudrate (def: from sniffer guide)\n");
+	printf("  -c <channel>       Primary advertising channel to listen on: 37, 38 or 39\n");
+	printf("                     (def: 37, 38 and 39 for nRF Sniffer, 37 for others)\n");
+	printf("  -R <RSSI>          Filter sniffer packets by minimum RSSI\n");
+	printf("  -m <MAC>           Filter sniffer packets by advertiser MAC\n");
+	printf("  -e                 Sniffle follow connections on secondary advertising channels\n\n");
 	printf("Mandatory argument for PCAP file input:\n");
 	printf("  -r <infile>        PCAP input file name\n\n");
 	printf("Optional arguments for output (def: output to Wireshark):\n");
@@ -71,12 +76,8 @@ void print_usage(void)
 	printf("                     '251' - LINKTYPE_BLUETOOTH_LE_LL\n");
 	printf("                     '256' - LINKTYPE_BLUETOOTH_LE_LL_WITH_PHDR (def)\n");
 	printf("                     '272' - LINKTYPE_NORDIC_BLE\n");
-	printf("  -c <channel>       Primary advertising channel to listen on: 37, 38 or 39\n");
 	printf("  -n                 Don't try to decrypt\n");
-	printf("  -L <LTK>           LTK key for decrypting packets\n");
-	printf("  -R <RSSI>          Filter sniffer packets by minimum RSSI\n");
-	printf("  -m <MAC>           Filter sniffer packets by advertiser MAC\n");
-	printf("  -e                 Sniffle follow connections on secondary advertising channels\n");
+	printf("  -L <LTK>           LTK key for decrypting packets\n\n");
 #ifdef WIN32
 	printf("  -W <path to Wireshark>   Path to Wireshark.exe\n");
 	printf("\nExamples:\n");
