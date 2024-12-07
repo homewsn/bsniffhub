@@ -7,7 +7,7 @@
 
 Bsniffhub is a utility that interfaces Bluetooth Low Energy (BLE) sniffer with Wireshark to capture, decrypt, and display wireless traffic.<br>
 Bsniffhub combines the following features:
-* support for several types of BLE sniffers that use a virtual USB serial port for communication, such as Sniffle, nRF Sniffer or SmartRF Packet Sniffer 2.
+* support for several types of BLE sniffers that use a virtual USB serial port for communication, such as Sniffle, nRF Sniffer, SmartRF Packet Sniffer 2 or STM32WB BLE Sniffer.
 * ensuring the launch of Wireshark and feeding packets to it through a local pipe.
 * support for several types of BLE link layer headers for PCAP files and Wireshark, such as LINKTYPE_BLUETOOTH_LE_LL, [LINKTYPE_BLUETOOTH_LE_LL_WITH_PHDR](https://www.tcpdump.org/linktypes/LINKTYPE_BLUETOOTH_LE_LL_WITH_PHDR.html), and [LINKTYPE_NORDIC_BLE](https://www.tcpdump.org/linktypes/LINKTYPE_NORDIC_BLE.html); dissectors for these types are already included in the Wireshark distributions.
 * the Temporary Key (TK) obtaining, the Short Term Key (STK) calculation and subsequent capture of the Long Term Key (LTK) if the BLE devices use the Legacy Pairing method with the Just Works or Passkey Entry association models.
@@ -18,20 +18,24 @@ Bsniffhub can be used both for working with the BLE sniffers and for decrypting 
 Bsniffhub has both a console version and a graphical user interface version, and it can be built for use on Linux or Windows.
 
 #### Supported BLE sniffers:
-* [Sniffle v1.6/v1.7](https://github.com/nccgroup/Sniffle) by Sultan Qasim Khan from NCC Group
+* [Sniffle v1.6 - v1.10](https://github.com/nccgroup/Sniffle) by Sultan Qasim Khan from NCC Group
 * [nRF Sniffer for Bluetooth LE v3.x.0 or 4.x.x](https://www.nordicsemi.com/Products/Development-tools/nrf-sniffer-for-bluetooth-le) by Nordic Semiconductor
 * [SmartRF Packet Sniffer 2 v1.9.0/v1.10.0](https://www.ti.com/tool/download/PACKET-SNIFFER-2) by Texas Instruments
+* [STM32WB BLE Sniffer v1.1.0](https://github.com/stm32-hotspot/STM32WB-BLE-Sniffer) by STMicroelectronics
 
-| Supported features | Sniffle v1.6/v1.7 | nRF Sniffer v3.x.0 | nRF Sniffer v4.x.x | SmartRF Packet Sniffer 2 v1.9/v1.10 |
-| ------ | :------: | :------: | :------: | :------: |
-| PHY 1 Mbps | + | + | + | + |
-| PHY 2 Mbps | + | + | + | - |
-| PHY Coded S2 | + | - | + | - |
-| PHY Coded S8 | + | - | + | - |
-| CSA#1 | + | + | + | + |
-| CSA#2 | + | + | + | - |
-| Hardware | TI CC1352/CC26x2 | nRF51/nRF52 | nRF51/nRF52 | TI CC1352/CC26x2 |
-| Serial port baud rate, bps | 2000000 | 1000000 | 1000000 | 3000000 |
+| Supported features | Sniffle v1.10 | nRF Sniffer v3.x.0 | nRF Sniffer v4.x.x | SmartRF Packet Sniffer 2 v1.10 | STM32WB BLE Sniffer v1.1.0 |
+| ------ | :------: | :------: | :------: | :------: | :------: |
+| PHY 1 Mbps | + | + | + | + | + |
+| PHY 2 Mbps | + | + | + | - | + |
+| PHY Coded S2 | + | - | + | - | - |
+| PHY Coded S8 | + | - | + | - | - |
+| CSA#1 | + | + | + | + | + |
+| CSA#2 | + | + | + | - | + |
+| Capture AUX_ADV_IND | + | + | + | - | - |
+| Follow AUX_CONNECT_REQ | + | - | - | - | - |
+| Isochronous stream | - | - | - | - | - |
+| Hardware | TI CC1352/CC26x2 | nRF51/nRF52 | nRF51/nRF52 | TI CC1352/CC26x2 | STM32WB55 |
+| Serial port baud rate, bps | 2000000 (921600) | 1000000 | 1000000 | 3000000 | 921600 |
 
 #### Dependencies
 * [libpcap](https://www.tcpdump.org/#latest-releases) (or [Npcap SDK](https://nmap.org/npcap/#download) for Windows)
@@ -70,19 +74,25 @@ $ ./bsniffhub
 One of the options -s or -r is required.
 
 Usage:
-  bsniffhub -s <sniffer> -p <serport> [-b <baudrate>] [-w <outfile>] [-l <link type>] [-n]
-  bsniffhub -r <infile> [-w <outfile>] [-l <link type>] [-n]
+  bsniffhub -s <sniffer> -p <serport> [-b <baudrate>] [-c <channel>] [-R <RSSI>] [-m <MAC>] [-e] [-w <outfile>] [-l <link type>] [-n] [-L <LTK>]
+  bsniffhub -r <infile> [-w <outfile>] [-l <link type>] [-n] [-L <LTK>]
 
 Mandatory arguments for sniffer device input:
   -s <sniffer>       Sniffer device:
                      'N3' - nRF Sniffer v3.x.0
                      'N4' - nRF Sniffer v4.x.x
                      'T' - SmartRF Packet Sniffer 2 v1.9/v1.10
-                     'S' - Sniffle v1.6/v1.7
+                     'S' - Sniffle v1.10
+                     'WB' - STM32WB BLE Sniffer v1.1.0
   -p <serport>       Serial port name
 
 Optional argument for sniffer device input:
   -b <baudrate>      Serial port baudrate (def: from sniffer guide)
+  -c <channel>       Primary advertising channel to listen on: 37, 38 or 39
+                     (def: 37, 38 and 39 for nRF Sniffer, 37 for others)
+  -R <RSSI>          Filter sniffer packets by minimum RSSI
+  -m <MAC>           Filter sniffer packets by advertiser MAC
+  -e                 Sniffle follow connections on secondary advertising channels
 
 Mandatory argument for PCAP file input:
   -r <infile>        PCAP input file name
@@ -93,7 +103,8 @@ Optional arguments for output (def: output to Wireshark):
                      '251' - LINKTYPE_BLUETOOTH_LE_LL
                      '256' - LINKTYPE_BLUETOOTH_LE_LL_WITH_PHDR (def)
                      '272' - LINKTYPE_NORDIC_BLE
-  -n                 Don't try to decode
+  -n                 Don't try to decrypt
+  -L <LTK>           LTK key for decrypting packets
 ```
 
 #### Usage (Windows)
@@ -108,9 +119,9 @@ Run Wireshark, capture packets from `SmartRF Packet Sniffer 2` on `/dev/ttyUSB2`
 ```
 $ ./bsniffhub -s T -p /dev/ttyUSB2
 ```
-Run Wireshark, capture packets from `Sniffle` on `/dev/ttyACM0` port with baud rate `1000000 bps` and feed the captured packets with the `LINKTYPE_BLUETOOTH_LE_LL_WITH_PHDR` packet header to `Wireshark`:
+Run Wireshark, capture packets from `Sniffle` on `/dev/ttyACM0` port with baud rate `921600 bps` and feed the captured packets with the `LINKTYPE_BLUETOOTH_LE_LL_WITH_PHDR` packet header to `Wireshark`:
 ```
-$ ./bsniffhub -s S -p /dev/ttyACM0 -b 1000000
+$ ./bsniffhub -s S -p /dev/ttyACM0 -b 921600
 ```
 Capture packets from `nRF Sniffer 4` on `/dev/ttyUSB0` port and save the captured packets with the `LINKTYPE_BLUETOOTH_LE_LL` packet header to `test.pcap` file, don't try to decode:
 ```
@@ -209,6 +220,7 @@ Connection terminated.
 File processing completed.
 ```
 #### Decryption if LTK can be provided
+By entering the key when prompted:
 ```
 $ ./bsniffhub -rexamples/ltk-063F1154BC631D186D48A05B7F5DCD8F.pcap -wout.pcap
 examples/ltk-063F1154BC631D186D48A05B7F5DCD8F.pcap is loading ...
@@ -220,6 +232,19 @@ Connection established.
 Encryption request detected, but LTK unknown.
 Do you have the Long Term Key (LTK)? Yes                            
 Please enter the LTK: 063F1154BC631D186D48A05B7F5DCD8F                                             
+Encryption start detected. LTK used.
+Connection terminated.
+File processing completed.
+```
+Using -L option on the command line:
+```
+$ ./bsniffhub -rexamples/ltk-063F1154BC631D186D48A05B7F5DCD8F.pcap -L063F1154BC631D186D48A05B7F5DCD8F -wout.pcap
+examples/ltk-063F1154BC631D186D48A05B7F5DCD8F.pcap is loading ...
+Creating the out.pcap file ...
+File loading completed.
+Connection created.
+Channel selection algorithm #2 detected.
+Connection established.
 Encryption start detected. LTK used.
 Connection terminated.
 File processing completed.
