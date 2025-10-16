@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2020, 2024 Vladimir Alemasov
+* Copyright (c) 2020 - 2025 Vladimir Alemasov
 * All rights reserved
 *
 * This program and the accompanying materials are distributed under
@@ -18,6 +18,7 @@
 #endif
 #include <assert.h>     /* assert */
 #include <stdio.h>      /* printf */
+#include <stdbool.h>    /* bool */
 #include <string.h>     /* memmove */
 #include "thread.h"
 #include "thread_state.h"
@@ -54,7 +55,7 @@ static void thread_run(void *param)
 
 	for (;;)
 	{
-		assert(size <= SERIAL_BUF_SIZE);
+		assert(size < SERIAL_BUF_SIZE);
 		if (!abort)
 		{
 			res = serial_read(dev, &buf[size], SERIAL_BUF_SIZE - size);
@@ -95,9 +96,9 @@ static void thread_run(void *param)
 			switch (cli_msg->cmd)
 			{
 			case CLI_SNIF_FOLLOW_DEVICE:
-				if (sniffer->follow)
+				if (sniffer->follow_device)
 				{
-					sniffer->follow((uint8_t *)cli_msg->buf, cli_msg->size);
+					sniffer->follow_device((uint8_t *)cli_msg->buf, cli_msg->size);
 				}
 				break;
 			case CLI_SNIF_PASSKEY:
@@ -115,7 +116,7 @@ static void thread_run(void *param)
 			case CLI_SNIF_LTK:
 				if (sniffer->ltk_set)
 				{
-					sniffer->ltk_set((uint8_t *)cli_msg->buf, cli_msg->size);
+					sniffer->ltk_set((uint8_t *)cli_msg->buf, cli_msg->size, true);
 				}
 				break;
 			default:

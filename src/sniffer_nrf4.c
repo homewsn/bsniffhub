@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2020, 2021, 2024 Vladimir Alemasov
+* Copyright (c) 2020 - 2025 Vladimir Alemasov
 * All rights reserved
 *
 * This program and the accompanying materials are distributed under
@@ -16,6 +16,7 @@
 #include <assert.h>     /* assert */
 #include <stdlib.h>     /* malloc */
 #include <stdio.h>      /* sscanf */
+#include <stdbool.h>    /* bool */
 #include <string.h>     /* memset */
 #include "msg_pckt_ble.h"
 #include "msg_to_cli.h"
@@ -69,6 +70,8 @@
 #define PING_REQ                        0x0D
 #define PING_RESP                       0x0E
 #define SET_ADV_CHANNEL_HOP_SEQ         0x17
+#define SET_LEGACY_LONG_TERM_KEY        0x19
+#define SET_SC_LONG_TERM_KEY            0x1A
 
 //--------------------------------------------
 #define SLIP_START                      0xAB
@@ -86,7 +89,6 @@ typedef enum
 } sniff_last_cmd_t;
 
 //--------------------------------------------
-static const uint8_t adv_channels[] = { 0x25, 0x26, 0x27 };
 static const uint8_t tmp_key[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
 //--------------------------------------------
@@ -96,8 +98,11 @@ static uint8_t cmd_buf[MAX_MSG_SIZE];
 static uint16_t host_to_sniffer_msg_cnt;
 static list_adv_t *adv_devs;
 static uint64_t timestamp_initial_us;
+static uint8_t ltk[AES128_BLOCK_LENGTH];
+static bool decrypt_packet;
 static int8_t min_rssi = -128;
-static uint8_t adv_channel;
+static uint8_t adv_channel_map[3] = { 0x25, 0x26, 0x27 };
+static uint8_t adv_channel_map_size = 0;
 static uint8_t mac_addr[DEVICE_ADDRESS_LENGTH];
 static uint8_t mac_addr_type;
 static uint8_t mac_filt;
@@ -217,7 +222,7 @@ static int command_ping_req_v1_send(void)
 }
 
 //--------------------------------------------
-static int command_set_adv_channel_hop_seq_v1_send(const uint8_t *adv_chans, uint8_t adv_chans_size)
+static int command_set_adv_channel_hop_seq_v1_send(uint8_t *adv_chans, uint8_t adv_chans_size)
 {
 	int res;
 	uint8_t buf[10];
@@ -229,14 +234,14 @@ static int command_set_adv_channel_hop_seq_v1_send(const uint8_t *adv_chans, uin
 		return -1;
 	}
 	buf[0] = 6; // Header length
-	buf[1] = 1 + adv_chans_size; // Payload length
+	buf[1] = 4; // Payload length
 	buf[2] = 1; // UART protocol version used
 	buf[3] = host_to_sniffer_msg_cnt & 0xFF; // Packet Counter (LSB)
 	buf[4] = host_to_sniffer_msg_cnt >> 8;
 	buf[5] = SET_ADV_CHANNEL_HOP_SEQ; // Packet type
 	buf[6] = adv_chans_size;
 	memcpy(&buf[7], adv_chans, adv_chans_size);
-	res = slip_encode(cmd_buf, buf, 7 + adv_chans_size);
+	res = slip_encode(cmd_buf, buf, 10);
 	host_to_sniffer_msg_cnt++;
 	return serial_write(dev, cmd_buf, res);
 }
@@ -284,6 +289,32 @@ static int command_set_temporary_key_v1_send(const uint8_t *key, uint8_t key_siz
 }
 
 //--------------------------------------------
+static int command_set_long_term_key_v1_send(const uint8_t *key, bool sc)
+{
+	int res;
+	uint8_t buf[6 + 16];
+
+	assert(key);
+	buf[0] = 6; // Header length
+	buf[1] = 16; // Payload length
+	buf[2] = 1; // UART protocol version used
+	buf[3] = host_to_sniffer_msg_cnt & 0xFF; // Packet Counter (LSB)
+	buf[4] = host_to_sniffer_msg_cnt >> 8;
+	if (sc)
+	{
+		buf[5] = SET_SC_LONG_TERM_KEY; // Packet type
+	}
+	else
+	{
+		buf[5] = SET_LEGACY_LONG_TERM_KEY; // Packet type
+	}
+	memcpy(&buf[6], key, 16);
+	res = slip_encode(cmd_buf, buf, 6 + 16);
+	host_to_sniffer_msg_cnt++;
+	return serial_write(dev, cmd_buf, res);
+}
+
+//--------------------------------------------
 static int command_req_follow_v1_send(const uint8_t *addr, uint8_t addr_type, uint8_t follow_only_advertisements)
 {
 	int res;
@@ -312,14 +343,7 @@ static void command_send(uint8_t *buf, size_t len)
 		if (buf[5] == PING_RESP)
 		{
 			msg_to_cli_add_print_command("%s", "nRF Sniffer for Bluetooth LE detected.\n");
-			if (adv_channel)
-			{
-				command_set_adv_channel_hop_seq_v1_send(&adv_channel, 1);
-			}
-			else
-			{
-				command_set_adv_channel_hop_seq_v1_send(adv_channels, sizeof(adv_channels));
-			}
+			command_set_adv_channel_hop_seq_v1_send(adv_channel_map, adv_channel_map_size);
 			if (mac_filt)
 			{
 				command_req_follow_v1_send(mac_addr, mac_addr_type, 0);
@@ -328,6 +352,11 @@ static void command_send(uint8_t *buf, size_t len)
 			{
 				command_req_scan_cont_v1_send();
 				command_set_temporary_key_v1_send(tmp_key, sizeof(tmp_key));
+			}
+			if (decrypt_packet)
+			{
+				command_set_long_term_key_v1_send(ltk, false);
+				command_set_long_term_key_v1_send(ltk, true);
 			}
 			last_cmd = SENT_CMD_REQ_SCAN_CONT;
 			msg_to_cli_add_print_command("%s", "nRF Sniffer for Bluetooth LE starts.\n");
@@ -456,13 +485,39 @@ static int packet_decode(uint8_t *buf, size_t len, ble_info_t **info, uint8_t pa
 		(*info)->dir = DIR_UNKNOWN;
 
 		header_flags = ((*info)->buf)[ACCESS_ADDRESS_LENGTH];
-		if (((header_flags & PDU_TYPE_MASK) == ADV_IND) && !mac_filt)
+		if (!mac_filt)
 		{
-			memcpy_reverse(adv_addr, &((*info)->buf)[ACCESS_ADDRESS_LENGTH + MINIMUM_HEADER_LENGTH], DEVICE_ADDRESS_LENGTH);
-			if (!list_adv_find_addr(&adv_devs, adv_addr))
+			if ((header_flags & PDU_TYPE_MASK) == ADV_IND)
 			{
-				list_adv_add(&adv_devs, adv_addr, header_flags & CSA_MASK ? 1 : 0, header_flags & TXADD_MASK ? 1 : 0);
-				msg_to_cli_add_follow_device_command(adv_addr, (*info)->rssi, header_flags & TXADD_MASK ? 1 : 0);
+				memcpy_reverse(adv_addr, &((*info)->buf)[ACCESS_ADDRESS_LENGTH + MINIMUM_HEADER_LENGTH], DEVICE_ADDRESS_LENGTH);
+				if (!list_adv_find_addr(&adv_devs, adv_addr))
+				{
+					list_adv_add(&adv_devs, adv_addr, header_flags & CSA_MASK ? 1 : 0, header_flags & TXADD_MASK ? 1 : 0);
+					msg_to_cli_add_follow_device_command(adv_addr, (*info)->rssi, header_flags & TXADD_MASK ? 1 : 0);
+				}
+			}
+			else if ((header_flags & PDU_TYPE_MASK) == ADV_EXT_IND)
+			{
+				// ADV_EXT_IND, AUX_ADV_IND, AUX_SCAN_RSP, AUX_SYNC_IND, AUX_CHAIN_IND, AUX_SYNC_SUBEVENT_IND, AUX_SYNC_SUBEVENT_RSP
+				uint8_t extended_header_length = (((*info)->buf)[ACCESS_ADDRESS_LENGTH + MINIMUM_HEADER_LENGTH]) & 0x3F;
+				// 2.3.4 Common Extended Advertising Payload Format
+				// The Extended Header field is a variable length header that is present if,
+				// and only if, the Extended Header Length field is non-zero.
+				if (extended_header_length)
+				{
+					uint8_t extended_header_flags = ((*info)->buf)[ACCESS_ADDRESS_LENGTH + MINIMUM_HEADER_LENGTH + 1];
+					if ((extended_header_flags & EXTENDED_HEADER_ADVERTISING_ADDRESS_Msk) >> EXTENDED_HEADER_ADVERTISING_ADDRESS_Pos)
+					{
+						// Extended advertising packet with advertising address
+						uint8_t adv_addr[DEVICE_ADDRESS_LENGTH];
+						memcpy_reverse(adv_addr, &((*info)->buf)[ACCESS_ADDRESS_LENGTH + MINIMUM_HEADER_LENGTH + 2], DEVICE_ADDRESS_LENGTH);
+						if (!list_adv_find_addr(&adv_devs, adv_addr))
+						{
+							list_adv_add(&adv_devs, adv_addr, 1, header_flags & TXADD_MASK ? 1 : 0);
+							msg_to_cli_add_follow_device_command(adv_addr, (*info)->rssi, 1);
+						}
+					}
+				}
 			}
 		}
 	}
@@ -490,6 +545,9 @@ static int packet_decode(uint8_t *buf, size_t len, ble_info_t **info, uint8_t pa
 			buf + MSG_HEADER_SIZE + hdr_length + ACCESS_ADDRESS_LENGTH + ci_flag + MINIMUM_HEADER_LENGTH + cp_flag + 1,
 			(*info)->size - ACCESS_ADDRESS_LENGTH - MINIMUM_HEADER_LENGTH - cp_flag);
 	}
+
+	(*info)->pdu = PDU_UNKNOWN;
+
 	return (int)(*info)->size;
 }
 
@@ -502,6 +560,18 @@ static void init(HANDLE hndl)
 	dev = hndl;
 	command_ping_req_v1_send();
 	last_cmd = SENT_CMD_PING_REQ;
+}
+
+//--------------------------------------------
+static void reset(void)
+{
+	min_rssi = -128;
+	adv_channel_map_size = 3;
+	adv_channel_map[0] = 37;
+	adv_channel_map[1] = 38;
+	adv_channel_map[2] = 39;
+	decrypt_packet = false;
+	mac_filt = 0;
 }
 
 //--------------------------------------------
@@ -553,7 +623,7 @@ static int serial_packet_decode(uint8_t *buf, size_t len, ble_info_t **pkt_info)
 }
 
 //--------------------------------------------
-static void follow(uint8_t *buf, size_t size)
+static void follow_device(uint8_t *buf, size_t size)
 {
 	list_adv_t *item;
 
@@ -606,15 +676,35 @@ static void oob_key_set(uint8_t *buf, size_t size)
 }
 
 //--------------------------------------------
+static void ltk_set(uint8_t *buf, size_t size, bool send)
+{
+	size_t cnt;
+
+	assert(size == 32 || size == 33);
+
+	for (cnt = 0; cnt < size / 2; cnt++, buf += 2)
+	{
+		sscanf(buf, "%2hhx", &ltk[cnt]);
+	}
+	decrypt_packet = true;
+	if (send)
+	{
+		command_set_long_term_key_v1_send(ltk, false);
+		command_set_long_term_key_v1_send(ltk, true);
+	}
+}
+
+//--------------------------------------------
 static void min_rssi_set(int8_t rssi)
 {
 	min_rssi = rssi;
 }
 
 //--------------------------------------------
-static void adv_channel_set(uint8_t channel)
+static void adv_channel_set(uint8_t *hop_map, uint8_t hop_map_size)
 {
-	adv_channel = channel;
+	adv_channel_map_size = hop_map_size;
+	memcpy(adv_channel_map, hop_map, hop_map_size);
 }
 
 //--------------------------------------------
@@ -632,5 +722,5 @@ static void close_free(void)
 }
 
 //--------------------------------------------
-SNIFFER(sniffer_nrf4, "N4", 1000000, 1, init, serial_packet_decode, follow, passkey_set, oob_key_set, NULL,\
-	    min_rssi_set, adv_channel_set, mac_addr_set, NULL, close_free);
+SNIFFER(sniffer_nrf4, "N4", 1000000, 1, init, reset, serial_packet_decode, follow_device, passkey_set, oob_key_set, ltk_set,\
+	    min_rssi_set, adv_channel_set, mac_addr_set, NULL, NULL, close_free);

@@ -4,10 +4,9 @@ Before downloading any precompiled binaries, you should read [the Tecgraf Librar
 
 #### Downloading and installation (Linux)
 
-The tested Linux precompiled IUP binaries (v. 3.30) can be downloaded from [this page](https://sourceforge.net/projects/iup/files/3.30/Linux%20Libraries/). Download and untar the package you need. Here is a list of the tested packages:
-* iup-3.30_Linux44_64_lib.tar.gz: Ubuntu 16.04 Xenial (x64)
-* iup-3.30_Linux415_64_lib.tar.gz: Ubuntu 18.04 Bionic (x64)
-* iup-3.30_Linux54_64_lib.tar.gz: Ubuntu 20.04 Focal Fossa (x64)
+The tested Linux precompiled IUP binaries (v. 3.30) can be downloaded from [this page](https://sourceforge.net/projects/iup/files/3.32/Linux%20Libraries/). Download and untar the package you need. Here is a list of the tested packages:
+* iup-3.32_Linux415_64_lib.tar.gz: Ubuntu 18.04 Bionic (x64)
+* iup-3.32_Linux68_64_lib.tar.gz: Ubuntu 22.04 Jammy Jellyfish (x64)
 
 To install the `run time` libraries in the system from the unpacked download:
 ```
@@ -21,11 +20,11 @@ Bsniffhubgui build process needs both the `run time` libraries and the `developm
 
 #### Downloading and installation (Windows)
 
-The tested Windows precompiled IUP binaries (v. 3.30) can be downloaded from [this page](https://sourceforge.net/projects/iup/files/3.30/Linux%20Libraries/). Download and unzip the package you need. Here is a list of the tested packages:
-* iup-3.30_Win64_vc15_lib.zip: MSVC 15 (2017) (x64)
-* iup-3.30_Win64_vc16_lib.zip: MSVC 16 (2019) (x64)
-* iup-3.30_Win32_vc15_lib.zip: MSVC 15 (2017) (x86)
-* iup-3.30_Win32_vc16_lib.zip: MSVC 16 (2019) (x86)
+The tested Windows precompiled IUP binaries (v. 3.32) can be downloaded from [this page](https://sourceforge.net/projects/iup/files/3.32/Windows%20Libraries/Static/). Download and unzip the package you need. Here is a list of the tested packages:
+* iup-3.32_Win64_vc15_lib.zip: MSVC 15 (2017) (x64)
+* iup-3.32_Win64_vc16_lib.zip: MSVC 16 (2019) (x64)
+* iup-3.32_Win32_vc15_lib.zip: MSVC 15 (2017) (x86)
+* iup-3.32_Win32_vc16_lib.zip: MSVC 16 (2019) (x86)
 
 To install the static libraries and the header files in the project file struct copy the following files from the unpacked download:
 * All files from the `include` folder of the unpacked download to the `\lib\iup\include` folder of the project.

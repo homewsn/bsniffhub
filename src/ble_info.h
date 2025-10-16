@@ -44,10 +44,23 @@ typedef enum
 
 typedef enum
 {
-	PDU_DATA = 0,
-	PDU_ADV = 1,
-	PDU_AUX_ADV = 2
+	PDU_ADV,
+	PDU_AUX,
+	PDU_ACL,
+	PDU_ISO_CIG,
+	PDU_ISO_BIG,
+	PDU_UNKNOWN
 } pdu_type_t;
+
+typedef enum
+{
+	PKT_AUX_ADV_IND,
+	PKT_AUX_CHAIN_IND,
+	PKT_AUX_SYNC_IND,
+	PKT_AUX_SCAN_RSP,
+	PKT_AUX_SYNC_SUBEVENT_IND,
+	PKT_AUX_SYNC_SUBEVENT_RSP
+} pkt_aux_t;
 
 typedef enum
 {
@@ -90,11 +103,11 @@ typedef struct ble_info
 	pkt_dir_t dir;                // BLE packet direction
 	uint16_t counter_total;       // total packet counter
 	uint16_t counter_conn;        // connection event counter
-	uint16_t counter_enc;         // encrypted packets counter
 	check_status_t status_crc;    // CRC status
 	check_status_t status_mic;    // MIC status
 	enc_status_t status_enc;      // packet encryption status
 	pdu_type_t pdu;               // packet PDU type (advertising or data)
+	pkt_aux_t aux_pdu;            // PDU name for Advertising physical channel PDU header’s PDU Type field = 0b0111
 } ble_info_t;
 
 

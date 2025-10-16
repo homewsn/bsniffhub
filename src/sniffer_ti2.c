@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2020, 2021, 2024 Vladimir Alemasov
+* Copyright (c) 2020 - 2025 Vladimir Alemasov
 * All rights reserved
 *
 * This program and the accompanying materials are distributed under
@@ -15,6 +15,7 @@
 #include <stdint.h>     /* uint8_t ... uint64_t */
 #include <assert.h>     /* assert */
 #include <stdlib.h>     /* malloc */
+#include <stdbool.h>    /* bool */
 #include <string.h>     /* memset */
 #include "msg_pckt_ble.h"
 #include "msg_to_cli.h"
@@ -332,6 +333,9 @@ static int packet_decode(uint8_t *buf, size_t len, ble_info_t **info)
 			}
 		}
 	}
+
+	(*info)->pdu = PDU_UNKNOWN;
+
 	return (int)pkt_length;
 }
 
@@ -344,6 +348,14 @@ static void init(HANDLE hndl)
 	dev = hndl;
 	serial_write(dev, cmd_stop, sizeof(cmd_stop));
 	last_cmd = SENT_CMD_STOP;
+}
+
+//--------------------------------------------
+static void reset(void)
+{
+	min_rssi = -128;
+	adv_channel = 37;
+	mac_filt = 0;
 }
 
 //--------------------------------------------
@@ -413,7 +425,7 @@ static int serial_packet_decode(uint8_t *buf, size_t len, ble_info_t **info)
 }
 
 //--------------------------------------------
-static void follow(uint8_t *buf, size_t size)
+static void follow_device(uint8_t *buf, size_t size)
 {
 	list_adv_t *item;
 
@@ -439,9 +451,9 @@ static void min_rssi_set(int8_t rssi)
 }
 
 //--------------------------------------------
-static void adv_channel_set(uint8_t channel)
+static void adv_channel_set(uint8_t *hop_map, uint8_t hop_map_size)
 {
-	adv_channel = channel;
+	adv_channel = hop_map[0];
 }
 
 //--------------------------------------------
@@ -458,5 +470,5 @@ static void close_free(void)
 }
 
 //--------------------------------------------
-SNIFFER(sniffer_ti2, "T", 3000000, 0, init, serial_packet_decode, follow, NULL, NULL, NULL,\
-	    min_rssi_set, adv_channel_set, mac_addr_set, NULL, close_free);
+SNIFFER(sniffer_ti2, "T", 3000000, 0, init, reset, serial_packet_decode, follow_device, NULL, NULL, NULL,\
+	    min_rssi_set, adv_channel_set, mac_addr_set, NULL, NULL, close_free);

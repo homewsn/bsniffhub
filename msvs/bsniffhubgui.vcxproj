@@ -22,7 +22,7 @@
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{BDB9C319-44B7-4A2C-A2D9-FD894CFA4D80}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <WindowsTargetPlatformVersion>10.0.18362.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.19041.0</WindowsTargetPlatformVersion>
     <ProjectName>bsniffhubgui</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -212,6 +212,7 @@
     <ClCompile Include="..\src\msg_cli.c" />
     <ClCompile Include="..\src\msg_cli_snif.c" />
     <ClCompile Include="..\src\pcap.c" />
+    <ClCompile Include="..\src\sniffer_blesniff.c" />
     <ClCompile Include="..\src\sniffer_nrf3.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
       </ExcludedFromBuild>
@@ -249,14 +250,20 @@
     <ClCompile Include="..\src\pipe.c" />
     <ClCompile Include="..\src\serial.c" />
     <ClCompile Include="..\src\sniffers.c" />
-    <ClCompile Include="..\src\task.c" />
+    <ClCompile Include="..\src\task.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="..\src\thread.c" />
     <ClCompile Include="..\src\thread_ble.c" />
     <ClCompile Include="..\src\thread_pcap_r.c" />
     <ClCompile Include="..\src\thread_pcap_w.c" />
     <ClCompile Include="..\src\thread_pipe.c" />
     <ClCompile Include="..\src\thread_sniff.c" />
-    <ClCompile Include="..\src\tstamp.c" />
+    <ClCompile Include="..\src\tstamp.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\lib\tinycrypt\include\tinycrypt\aes.h" />
@@ -309,6 +316,7 @@
     <ClInclude Include="..\src\thread_sniff.h" />
     <ClInclude Include="..\src\thread_state.h" />
     <ClInclude Include="..\src\tstamp.h" />
+    <ClInclude Include="res\resource.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="res\resource.rc" />

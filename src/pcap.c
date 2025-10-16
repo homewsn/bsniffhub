@@ -126,22 +126,13 @@ size_t pcap_packet_create(uint32_t dlt, ble_info_t *info, uint8_t *packet)
 		ble_ll_hdr.flags |= 0x0002;  // Signal Power Valid: True
 		// Noise Power Valid: False
 		ble_ll_hdr.flags |= (info->status_enc == ENC_DECRYPTED) ? 0x0008 : 0x0000; // Decrypted
-		if (info->pdu == PDU_ADV || info->pdu == PDU_AUX_ADV)
+		if (info->pdu == PDU_ADV || info->pdu == PDU_AUX)
 		{
 			ble_ll_hdr.ref_access_address = *(uint32_t *)adv_channel_access_address;
 			ble_ll_hdr.flags |= 0x0010;  // Reference Access Address Valid: True
-			if (info->pdu == PDU_AUX_ADV)
-			{
-				ble_ll_hdr.flags |= 0x0080;  // PDU Type
-			}
 		}
 		// Access Address Offenses Valid: False
 		// Channel Aliased: False
-		if (info->dir != DIR_UNKNOWN && info->pdu == PDU_DATA)
-		{
-			ble_ll_hdr.flags |= (info->dir == DIR_MASTER_SLAVE) ? 0x0100 : 0x0180; // PDU Type
-		}
-		// else { PDU Type: Advertising or Data (Unspecified Direction) (0) }
 		if (info->status_crc != CHECK_UNKNOWN)
 		{
 			ble_ll_hdr.flags |= 0x0400;  // CRC Checked: True
@@ -154,11 +145,52 @@ size_t pcap_packet_create(uint32_t dlt, ble_info_t *info, uint8_t *packet)
 			ble_ll_hdr.flags |= (info->status_mic == CHECK_OK) ? 0x2000 : 0x0000; // MIC Valid
 		}
 		// else { MIC Checked: False, MIC Valid: False }
-		if (info->status_enc == ENC_DECRYPTED)
+
+		switch (info->pdu)
 		{
-			ble_ll_hdr.flags |= 0x0008;  // Decrypted: True
+		case PDU_ADV:
+			ble_ll_hdr.flags |= 0x0000;
+			break;
+		case PDU_AUX:
+			ble_ll_hdr.flags |= 0x0080;  // PDU Type
+			switch (info->aux_pdu)
+			{
+				// ???????????????????????????????????
+			case PKT_AUX_ADV_IND:
+				ble_ll_hdr.flags |= 0x0000;
+				break;
+			case PKT_AUX_CHAIN_IND:
+				ble_ll_hdr.flags |= 0x1000;
+				break;
+			case PKT_AUX_SYNC_IND:
+			case PKT_AUX_SYNC_SUBEVENT_IND:  // this is incorrect, but there is no special flag bits yet
+				ble_ll_hdr.flags |= 0x2000;
+				break;
+			case PKT_AUX_SCAN_RSP:
+			case PKT_AUX_SYNC_SUBEVENT_RSP:  // this is incorrect, but there is no special flag bits yet
+				ble_ll_hdr.flags |= 0x3000;
+				break;
+			}
+			break;
+		case PDU_ACL:
+			if (info->dir != DIR_UNKNOWN)
+			{
+				ble_ll_hdr.flags |= (info->dir == DIR_MASTER_SLAVE) ? 0x0100 : 0x0180;
+			}
+			else
+			{
+				ble_ll_hdr.flags |= 0x0000;
+			}
+			ble_ll_hdr.ref_access_address |= info->counter_conn;
+			break;
+		case PDU_ISO_CIG:
+			ble_ll_hdr.flags |= (info->dir == DIR_MASTER_SLAVE) ? 0x0200 : 0x0280;
+			ble_ll_hdr.ref_access_address |= info->counter_conn;
+			break;
+		case PDU_ISO_BIG:
+			ble_ll_hdr.flags |= 0x0300;
+			break;
 		}
-		// else { Decrypted: False}
 
 		ble_ll_hdr.flags |= info->phy << 14;  // PHY
 
@@ -246,13 +278,15 @@ size_t pcap_packet_create(uint32_t dlt, ble_info_t *info, uint8_t *packet)
 		nordic_hdr.type3_timestamp = (uint32_t)info->timestamp;
 		nordic_hdr.event_counter = info->counter_conn;
 		nordic_hdr.packet_counter = info->counter_total;
-		if (info->pdu == PDU_DATA)
+		if (info->pdu == PDU_ADV || info->pdu == PDU_AUX)
 		{
-			nordic_hdr.packet_id = 6;
+			nordic_hdr.packet_id = 2;
 		}
 		else
 		{
-			nordic_hdr.packet_id = 2;
+			nordic_hdr.packet_id = 6;
+			nordic_hdr.flags |= info->dir == DIR_MASTER_SLAVE ? 0x02 : 0x00;
+			nordic_hdr.flags |= (info->status_enc == ENC_ENCRYPTED || info->status_enc == ENC_DECRYPTED) ? 0x04 : 0x00;
 		}
 		nordic_hdr.packet_length = 10;
 		nordic_hdr.payload_length = info->phy == PHY_CODED ? (uint16_t)(info->size + 1 + 10) : (uint16_t)(info->size + 10);
@@ -260,8 +294,6 @@ size_t pcap_packet_create(uint32_t dlt, ble_info_t *info, uint8_t *packet)
 		nordic_hdr.rssi = -info->rssi; // Nordic prefers the RSSI value without a minus sign
 
 		nordic_hdr.flags |= info->status_crc == CHECK_OK ? 0x01 : 0x00;
-		nordic_hdr.flags |= info->dir == DIR_MASTER_SLAVE ? 0x02 : 0x00;
-		nordic_hdr.flags |= (info->status_enc == ENC_ENCRYPTED || info->status_enc == ENC_DECRYPTED) ? 0x04 : 0x00;
 		nordic_hdr.flags |= (info->status_mic == CHECK_OK) ? 0x08 : 0x00;
 		switch (info->phy)
 		{
@@ -274,6 +306,28 @@ size_t pcap_packet_create(uint32_t dlt, ble_info_t *info, uint8_t *packet)
 		case PHY_CODED:
 			nordic_hdr.flags |= 0x20;
 			break;
+		}
+		if (info->pdu == PDU_AUX)
+		{
+			// https://github.com/wireshark/wireshark/blob/master/epan/dissectors/packet-btle.c#L926
+			// https://github.com/wireshark/wireshark/blob/master/epan/dissectors/packet-nordic_ble.c#L150
+			switch (info->aux_pdu)
+			{
+			case PKT_AUX_ADV_IND:
+				nordic_hdr.flags |= 0x00;
+				break;
+			case PKT_AUX_CHAIN_IND:
+				nordic_hdr.flags |= 0x02;
+				break;
+			case PKT_AUX_SYNC_IND:
+			case PKT_AUX_SYNC_SUBEVENT_IND:  // this is incorrect, but there is no special flag bits yet
+				nordic_hdr.flags |= 0x04;
+				break;
+			case PKT_AUX_SCAN_RSP:
+			case PKT_AUX_SYNC_SUBEVENT_RSP:  // this is incorrect, but there is no special flag bits yet
+				nordic_hdr.flags |= 0x06;
+				break;
+			}
 		}
 
 		memcpy(packet, &nordic_hdr, sizeof(pcap_nordic_ble_header_t));
@@ -340,24 +394,70 @@ ble_info_t *pcap_packet_parse(uint32_t dlt, const struct pcap_pkthdr *header, co
 		header_len = sizeof(pcap_bluetooth_le_ll_header_t);
 		info->channel = rf2ble_channel(ble_ll_hdr->rf_channel);
 		info->rssi = ble_ll_hdr->signal_power;
-		if (ble_ll_hdr->flags & 0x0380)
-		{
-			if ((ble_ll_hdr->flags & 0x0380) == 0x0100)
-			{
-				info->dir = DIR_MASTER_SLAVE;
-			}
-			if ((ble_ll_hdr->flags & 0x0380) == 0x0180)
-			{
-				info->dir = DIR_SLAVE_MASTER;
-			}
-		}
-		if (ble_ll_hdr->flags & 0x0400)
-		{
-			info->status_crc = (ble_ll_hdr->flags & 0x0800) ? CHECK_OK : CHECK_FAIL;
-		}
 		if (ble_ll_hdr->flags & 0x1000)
 		{
 			info->status_mic = (ble_ll_hdr->flags & 0x2000) ? CHECK_OK : CHECK_FAIL;
+		}
+
+		switch (ble_ll_hdr->flags & 0x0380)
+		{
+		case 0x0000:
+			info->pdu = PDU_UNKNOWN;
+			info->dir = DIR_UNKNOWN;
+			break;
+		case 0x0080:
+			info->pdu = PDU_AUX;
+			info->dir = DIR_MASTER_SLAVE;
+			if (*(packet + header_len + ACCESS_ADDRESS_LENGTH) == 0x07)
+			{
+				switch (ble_ll_hdr->flags & 0x3000)
+				{
+				case 0x0000:
+					info->aux_pdu = PKT_AUX_ADV_IND;
+					break;
+				case 0x1000:
+					info->aux_pdu = PKT_AUX_CHAIN_IND;
+					break;
+				case 0x2000:
+					info->aux_pdu = PKT_AUX_SYNC_IND;
+//					info->aux_pdu = PKT_AUX_SYNC_SUBEVENT_IND;  // this is incorrect, but there is no special flag bits yet
+					break;
+				case 0x3000:
+					info->aux_pdu = PKT_AUX_SCAN_RSP;
+//					info->aux_pdu = PKT_AUX_SYNC_SUBEVENT_RSP;  // this is incorrect, but there is no special flag bits yet
+					break;
+				}
+			}
+			break;
+		case 0x0100:
+			info->pdu = PDU_ACL;
+			info->dir = DIR_MASTER_SLAVE;
+			info->counter_conn = (uint16_t)ble_ll_hdr->ref_access_address & 0xFFFF;
+			break;
+		case 0x0180:
+			info->pdu = PDU_ACL;
+			info->dir = DIR_SLAVE_MASTER;
+			info->counter_conn = (uint16_t)ble_ll_hdr->ref_access_address & 0xFFFF;
+			break;
+		case 0x0200:
+			info->pdu = PDU_ISO_CIG;
+			info->dir = DIR_MASTER_SLAVE;
+			info->counter_conn = (uint16_t )ble_ll_hdr->ref_access_address & 0xFFFF;
+			break;
+		case 0x0280:
+			info->pdu = PDU_ISO_CIG;
+			info->dir = DIR_SLAVE_MASTER;
+			info->counter_conn = (uint16_t)ble_ll_hdr->ref_access_address & 0xFFFF;
+			break;
+		case 0x0380:
+			info->pdu = PDU_ISO_BIG;
+			info->dir = DIR_MASTER_SLAVE;
+			break;
+		}
+
+		if (ble_ll_hdr->flags & 0x0400)
+		{
+			info->status_crc = (ble_ll_hdr->flags & 0x0800) ? CHECK_OK : CHECK_FAIL;
 		}
 		info->status_enc = (ble_ll_hdr->flags & 0x0008) ? ENC_DECRYPTED : ENC_UNKNOWN;
 		info->size = header->caplen - header_len;
@@ -407,6 +507,38 @@ ble_info_t *pcap_packet_parse(uint32_t dlt, const struct pcap_pkthdr *header, co
 			info->size -= 1;
 			break;
 		}
+
+		if (nordic_hdr->packet_id == 2)
+		{
+			if (nordic_hdr->channel >= 37)
+			{
+				info->pdu = PDU_ADV;
+			}
+			else
+			{
+				info->pdu = PDU_AUX;
+				switch (nordic_hdr->flags & 0x06)
+				{
+				case 0x00:
+					info->aux_pdu = PKT_AUX_ADV_IND;
+					break;
+				case 0x02:
+					info->aux_pdu = PKT_AUX_CHAIN_IND;
+					break;
+				case 0x04:
+					info->aux_pdu = PKT_AUX_SYNC_IND;
+					break;
+				case 0x06:
+					info->aux_pdu = PKT_AUX_SCAN_RSP;
+					break;
+				}
+			}
+		}
+		if (nordic_hdr->packet_id == 6)
+		{
+			info->pdu = PDU_ACL;
+		}
+
 		if (nordic_hdr->protocol_version <= 2)
 		{
 			static uint64_t timestamp_us;

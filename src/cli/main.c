@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2020, 2024 Vladimir Alemasov
+* Copyright (c) 2020 - 2025 Vladimir Alemasov
 * All rights reserved
 *
 * This program and the accompanying materials are distributed under
@@ -12,6 +12,7 @@
 * GNU General Public License for more details.
 */
 
+#include <stdint.h>     /* uint8_t ... uint64_t */
 #include <stdlib.h>     /* exit */
 #ifdef _WIN32
 #include <windows.h>    /* Windows stuff */
@@ -61,7 +62,7 @@ int main(int argc, char *argv[])
 	signal(SIGINT, signal_handler);
 #endif
 
-	while ((option = getopt(argc, argv, "s:p:b:r:w:l:W:nL:R:ec:m:")) != -1)
+	while ((option = getopt(argc, argv, "s:p:b:r:w:l:W:nL:R:ec:m:f:")) != -1)
 	{
 		switch (option)
 		{
@@ -114,6 +115,10 @@ int main(int argc, char *argv[])
 		case 'm':
 			ts.opt_m = 1;
 			ts.opt_m_arg = optarg;
+			break;
+		case 'f':
+			ts.opt_f = 1;
+			ts.opt_f_arg = optarg;
 			break;
 		default: // '?'
 			print_usage();

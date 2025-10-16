@@ -92,6 +92,8 @@
 #define LL_ENC_RSP_PDU_LENGTH                      13
 #define LL_START_ENC_REQ                           0x05
 #define LL_PAUSE_ENC_RSP                           0x0B
+#define LL_CIS_REQ                                 0x1F
+#define LL_CIS_IND                                 0x21
 #define MAXIMUM_PDU_AES_BUFFER_LENGTH              (MAXIMUM_PDU_LENGTH / AES128_BLOCK_LENGTH + 1) * AES128_BLOCK_LENGTH
 #define ADV_CHANNEL_CRC_INIT                       0x555555
 #define ADV_CHANNEL_ACCESS_ADDRESS                 { 0xD6, 0xBE, 0x89, 0x8E }
@@ -102,9 +104,33 @@
 #define DATA_CHANNELS_BYTES_NUMBER                 (((DATA_CHANNELS_NUMBER - 1) / 8) + 1)
 #define HOP_MASK                                   0x1F
 #define DECRYPTION_ATTEMPTS_NUMBER                 10
+#define ISO_DECRYPTION_ATTEMPTS_NUMBER             20
 #define CODED_PHY_CODING_SCHEME_S2                 2
 #define CODED_PHY_CODING_SCHEME_S8                 8
 
+#define EXTENDED_HEADER_ADVERTISING_ADDRESS_Pos    0
+#define EXTENDED_HEADER_TARGET_ADDRESS_Pos         1
+#define EXTENDED_HEADER_CTE_INFO_Pos               2
+#define EXTENDED_HEADER_ADVERTISING_DATA_INFO_Pos  3
+#define EXTENDED_HEADER_AUX_POINTER_Pos            4
+#define EXTENDED_HEADER_SYNC_INFO_Pos              5
+#define EXTENDED_HEADER_TX_POWER_Pos               6
+
+#define EXTENDED_HEADER_ADVERTISING_ADDRESS_Msk    (0x01 << EXTENDED_HEADER_ADVERTISING_ADDRESS_Pos)
+#define EXTENDED_HEADER_TARGET_ADDRESS_Msk         (0x01 << EXTENDED_HEADER_TARGET_ADDRESS_Pos)
+#define EXTENDED_HEADER_CTE_INFO_Msk               (0x01 << EXTENDED_HEADER_CTE_INFO_Pos)
+#define EXTENDED_HEADER_ADVERTISING_DATA_INFO_Msk  (0x01 << EXTENDED_HEADER_ADVERTISING_DATA_INFO_Pos)
+#define EXTENDED_HEADER_AUX_POINTER_Msk            (0x01 << EXTENDED_HEADER_AUX_POINTER_Pos)
+#define EXTENDED_HEADER_SYNC_INFO_Msk              (0x01 << EXTENDED_HEADER_SYNC_INFO_Pos)
+#define EXTENDED_HEADER_TX_POWER_Msk               (0x01 << EXTENDED_HEADER_TX_POWER_Pos)
+
+#define EXTENDED_HEADER_ADVERTISING_ADDRESS_Len    DEVICE_ADDRESS_LENGTH
+#define EXTENDED_HEADER_TARGET_ADDRESS_Len         DEVICE_ADDRESS_LENGTH
+#define EXTENDED_HEADER_CTE_INFO_Len               1
+#define EXTENDED_HEADER_ADVERTISING_DATA_INFO_Len  2
+#define EXTENDED_HEADER_AUX_POINTER_Len            3
+#define EXTENDED_HEADER_SYNC_INFO_Len              18
+#define EXTENDED_HEADER_TX_POWER_Len               1
 
 //--------------------------------------------
 static const uint8_t adv_channel_access_address[ACCESS_ADDRESS_LENGTH] = ADV_CHANNEL_ACCESS_ADDRESS;

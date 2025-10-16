@@ -882,8 +882,10 @@ namespace Iup
     Matrix(Ihandle* _ih) : Control(_ih) {}
     Matrix(const Element& elem) : Control(elem.GetHandle()) {}
 
+#ifdef LUA_VERSION
     void SetFormula(int col, const char* formula, const char* init = 0) { IupMatrixSetFormula(ih, col, formula, init); }
     void SetDynamic(const char* init = 0) { IupMatrixSetDynamic(ih, init); }
+#endif
   };
   class MatrixList : public Control
   {

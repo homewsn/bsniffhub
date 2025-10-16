@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2020, 2021, 2024 Vladimir Alemasov
+* Copyright (c) 2020 - 2025 Vladimir Alemasov
 * All rights reserved
 *
 * This program and the accompanying materials are distributed under
@@ -15,9 +15,11 @@
 #include <stdint.h>     /* uint8_t ... uint64_t */
 #include <stdio.h>      /* printf */
 #include <stdio.h>      /* sscanf */
-#include <stdlib.h>     /* atoi */
+#include <stdlib.h>     /* strtol, atoi */
 #include <string.h>     /* strlen */
 #include <ctype.h>      /* isdigit */
+#include <stdbool.h>    /* bool */
+#include <errno.h>		/* errno */
 #include "thread.h"
 #include "msg_to_cli.h"
 #include "msg_ble_pcap.h"
@@ -28,6 +30,7 @@
 #include "msg_cli_snif.h"
 #include "serial.h"
 #include "sniffers.h"
+#include "ble.h"
 #include "ble_pcap.h"
 #include "ble_decoder.h"
 #include "thread_cli.h"
@@ -47,27 +50,34 @@ void print_usage(void)
 {
 	printf("Usage:\n");
 #ifdef WIN32
-	printf("  bsniffhub -s <sniffer> -p <serport> [-b <baudrate>] [-c <channel>] [-R <RSSI>] [-m <MAC>] [-e] [-w <outfile>] [-l <link type>] [-n] [-L <LTK>] [-W <path to Wireshark>]\n");
+	printf("  bsniffhub -s <sniffer> -p <serport> [-b <baudrate>] [-c <channel(s)>] [-f <MODE>] [-R <RSSI>] [-m <MAC>] [-e] [-w <outfile>] [-l <link type>] [-n] [-L <LTK>] [-W <path to Wireshark>]\n");
 	printf("  bsniffhub -r <infile> [-w <outfile>] [-l <link type>] [-n] [-L <LTK>] [-W <path to Wireshark>]\n\n");
 #else
-	printf("  bsniffhub -s <sniffer> -p <serport> [-b <baudrate>] [-c <channel>] [-R <RSSI>] [-m <MAC>] [-e] [-w <outfile>] [-l <link type>] [-n] [-L <LTK>]\n");
+	printf("  bsniffhub -s <sniffer> -p <serport> [-b <baudrate>] [-c <channel(s)>] [-f <MODE>] [-R <RSSI>] [-m <MAC>] [-e] [-w <outfile>] [-l <link type>] [-n] [-L <LTK>]\n");
 	printf("  bsniffhub -r <infile> [-w <outfile>] [-l <link type>] [-n] [-L <LTK>]\n\n");
 #endif
 	printf("Mandatory arguments for sniffer device input:\n");
 	printf("  -s <sniffer>       Sniffer device:\n");
-	printf("                     'N3' - nRF Sniffer v3.x.0\n");
-	printf("                     'N4' - nRF Sniffer v4.x.x\n");
-	printf("                     'T' - SmartRF Packet Sniffer 2 v1.9/v1.10\n");
-	printf("                     'S' - Sniffle v1.10\n");
-	printf("                     'WB' - STM32WB BLE Sniffer v1.1.0\n");
+	printf("                     'B' - Blesniff\n");
+	printf("                     'N3' - nRF Sniffer v3\n");
+	printf("                     'N4' - nRF Sniffer v4\n");
+	printf("                     'S' - Sniffle\n");
+	printf("                     'T' - SmartRF Packet Sniffer 2\n");
+	printf("                     'WB' - STM32WB BLE Sniffer\n");
 	printf("  -p <serport>       Serial port name\n\n");
 	printf("Optional argument for sniffer device input:\n");
 	printf("  -b <baudrate>      Serial port baudrate (def: from sniffer guide)\n");
-	printf("  -c <channel>       Primary advertising channel to listen on: 37, 38 or 39\n");
-	printf("                     (def: 37, 38 and 39 for nRF Sniffer, 37 for others)\n");
+	printf("  -c <channel(s)>    Primary advertising channel(s) to listen on: 37, 38 or 39\n");
+	printf("                     (def: 37,38,39 for Blesniff and nRF Sniffer, 37 for others)\n");
 	printf("  -R <RSSI>          Filter sniffer packets by minimum RSSI\n");
 	printf("  -m <MAC>           Filter sniffer packets by advertiser MAC\n");
-	printf("  -e                 Sniffle follow connections on secondary advertising channels\n\n");
+	printf("  -e                 Sniffle follow connections on secondary advertising channels\n");
+	printf("  -f <MODE>          Blesniff follow mode:\n");
+	printf("                     'conn' - connection\n");
+	printf("                     'pa' - periodic advertising\n");
+	printf("                     'cis' - connected isochronous stream ('conn' is also required)\n");
+	printf("                     'bis' - broadcast isochronous stream ('pa' is also required)\n");
+	printf("                     (def: conn,pa,cis,bis)\n\n");
 	printf("Mandatory argument for PCAP file input:\n");
 	printf("  -r <infile>        PCAP input file name\n\n");
 	printf("Optional arguments for output (def: output to Wireshark):\n");
@@ -81,6 +91,7 @@ void print_usage(void)
 #ifdef WIN32
 	printf("  -W <path to Wireshark>   Path to Wireshark.exe\n");
 	printf("\nExamples:\n");
+	printf("  bsniffhub -s B -l 272 -R -70 -c 37,38 -f conn,cis -L 6ab0580e966e7b61f4470dfb696b3799\n");
 	printf("  bsniffhub -s T -p COM5\n");
 	printf("  bsniffhub -s S -p COM40 -b 1000000 -W D:\\Wireshark\\Wireshark.exe\n");
 	printf("  bsniffhub -s N4 -p COM22 -l 251 -n -w C:\\PCAP files\\test.pcap\n");
@@ -88,12 +99,277 @@ void print_usage(void)
 	printf("  bsniffhub -r C:\\PCAP files\\input.pcap -l 272 -w C:\\PCAP files\\output.pcap\n");
 #else
 	printf("\nExamples:\n");
+	printf("  ./bsniffhub -s B -l 272 -R -70 -c 37,38 -f conn,cis -L 6ab0580e966e7b61f4470dfb696b3799\n");
 	printf("  ./bsniffhub -s T -p /dev/ttyUSB2\n");
 	printf("  ./bsniffhub -s S -p /dev/ttyUSB0 -b 1000000\n");
 	printf("  ./bsniffhub -s N4 -p /dev/ttyUSB2 -l 251 -n -w test.pcap\n");
 	printf("  ./bsniffhub -r input.pcap\n");
 	printf("  ./bsniffhub -r input/input.pcap -l 256 -w output/output.pcap\n");
 #endif
+}
+
+//--------------------------------------------
+#define FOLLOW_CONN   (1 << 0)    // connection
+#define FOLLOW_PA     (1 << 1)    // periodic advertising
+#define FOLLOW_CIS    (1 << 2)    // connected isochronous stream
+#define FOLLOW_BIS    (1 << 3)    // broadcast isochronous stream
+
+//--------------------------------------------
+static uint8_t match_filter(char *s, char **matched)
+{
+	if (strncmp(s, "conn", 4) == 0)
+	{
+		*matched = s + 4;
+		return FOLLOW_CONN;
+	}
+	if (strncmp(s, "pa", 2) == 0)
+	{
+		*matched = s + 2;
+		return FOLLOW_PA;
+	}
+	if (strncmp(s, "cis", 3) == 0)
+	{
+		*matched = s + 3;
+		return FOLLOW_CIS;
+	}
+	if (strncmp(s, "bis", 3) == 0)
+	{
+		*matched = s + 3;
+		return FOLLOW_BIS;
+	}
+	return 0;
+}
+
+//--------------------------------------------
+int task_parse_filter(char *arg, uint8_t *filter)
+{
+	char *copy = strdup(arg);
+	if (!copy)
+	{
+		printf("Insufficient memory.\n\n");
+		return TASK_ERROR_INSUFFICIENT_MEMORY;
+	}
+
+	*filter = 0;
+	char *token = strtok(copy, ",");
+	while (token)
+	{
+		char *p = token;
+		while (*p)
+		{
+			char *next;
+			int m = match_filter(p, &next);
+			if (!m)
+			{
+				free(copy);
+				printf("Unknown mode near %s in -f option.\n\n", p);
+				print_usage();
+				return TASK_ERROR_USAGE;
+			}
+			*filter |= m;
+			p = next;
+		}
+		token = strtok(NULL, ",");
+	}
+
+	free(copy);
+	return 0;
+}
+
+//--------------------------------------------
+int task_parse_channels(char *arg, uint8_t *hop_map, uint8_t *hop_map_size)
+{
+	bool used37 = false, used38 = false, used39 = false;
+
+	char *copy = strdup(arg);
+	if (!copy)
+	{
+		printf("Insufficient memory.\n\n");
+		return TASK_ERROR_INSUFFICIENT_MEMORY;
+	}
+
+	*hop_map_size = 0;
+	char *token = strtok(copy, ",");
+	if (strchr(arg, ','))
+	{
+		while (token)
+		{
+			if (*hop_map_size >= 3)
+			{
+				free(copy);
+				printf("Too many channels (max 3) in -c option.\n\n");
+				print_usage();
+				return TASK_ERROR_USAGE;
+			}
+			int ch = atoi(token);
+			if (ch != 37 && ch != 38 && ch != 39)
+			{
+				free(copy);
+				printf("Invalid channel %d in -c option.\n\n", ch);
+				print_usage();
+				return TASK_ERROR_USAGE;
+			}
+			if ((ch == 37 && used37) || (ch == 38 && used38) || (ch == 39 && used39))
+			{
+				free(copy);
+				printf("Duplicate channel %d in -c option.\n\n", ch);
+				print_usage();
+				return TASK_ERROR_USAGE;
+			}
+			hop_map[(*hop_map_size)++] = (uint8_t)ch;
+			if (ch == 37)
+			{
+				used37 = true;
+			}
+			if (ch == 38)
+			{
+				used38 = true;
+			}
+			if (ch == 39)
+			{
+				used39 = true;
+			}
+			token = strtok(NULL, ",");
+		}
+	}
+	else
+	{
+		const char *p = arg;
+		while (*p)
+		{
+			if (*hop_map_size >= 3)
+			{
+				free(copy);
+				printf("Too many channels (max 3) in -c option.\n\n");
+				print_usage();
+				return TASK_ERROR_USAGE;
+			}
+			if (!isdigit(p[0]) || !isdigit(p[1]))
+			{
+				free(copy);
+				printf("Invalid channel format near %s in -c option.\n\n", p);
+				print_usage();
+				return TASK_ERROR_USAGE;
+			}
+			int ch = (p[0] - '0') * 10 + (p[1] - '0');
+			if (ch != 37 && ch != 38 && ch != 39)
+			{
+				free(copy);
+				printf("Invalid channel %d in -c option.\n\n", ch);
+				print_usage();
+				return TASK_ERROR_USAGE;
+			}
+			if ((ch == 37 && used37) || (ch == 38 && used38) || (ch == 39 && used39))
+			{
+				free(copy);
+				printf("Duplicate channel %d in -c option.\n\n", ch);
+				print_usage();
+				return TASK_ERROR_USAGE;
+			}
+			hop_map[(*hop_map_size)++] = (uint8_t)ch;
+			if (ch == 37)
+			{
+				used37 = true;
+			}
+			if (ch == 38)
+			{
+				used38 = true;
+			}
+			if (ch == 39)
+			{
+				used39 = true;
+			}
+			p += 2;
+		}
+	}
+
+	free(copy);
+	return 0;
+}
+
+//--------------------------------------------
+int task_parse_rssi(char *arg, int *rssi)
+{
+	size_t arg_len;
+	int32_t long_data;
+	char *end;
+
+	arg_len = strlen(arg);
+	errno = 0;
+	end = NULL;
+	long_data = strtol(arg, &end, 10);
+	if (errno != 0 || end != arg + arg_len)
+	{
+		printf("Wrong argument %s in -R option.\n\n", arg);
+		print_usage();
+		return TASK_ERROR_USAGE;
+	}
+	if (long_data > 127 || long_data < -128)
+	{
+		printf("Wrong argument value %s in -R option.\n\n", arg);
+		print_usage();
+		return TASK_ERROR_USAGE;
+	}
+	*rssi = (int8_t)long_data;
+	return 0;
+}
+
+//--------------------------------------------
+int task_parse_mac_address(char *arg, uint8_t *mac, uint8_t *mac_addr_type)
+{
+	if (strlen(arg) != 17 && strlen(arg) != 18)
+	{
+		printf("The MAC address must be specified in colon-separated format, such as 12:34:56:78:9A:BC.\n\n");
+		printf("The MAC address may have an 'r' at the end if it is a random type, such as 12:34:56:78:9A:BCr.\n\n");
+		print_usage();
+		return TASK_ERROR_USAGE;
+	}
+	if (strlen(arg) == 18)
+	{
+		if (arg[17] == 'r')
+		{
+			*mac_addr_type = 1;
+		}
+		else
+		{
+			printf("The MAC address may have an 'r' at the end if it is a random type, such as 12:34:56:78:9A:BCr.\n\n");
+			print_usage();
+			return TASK_ERROR_USAGE;
+		}
+	}
+	char *buf = arg;
+	for (size_t cnt = 0; cnt < DEVICE_ADDRESS_LENGTH; cnt++, buf += 3)
+	{
+		int res = sscanf((const char *)buf, "%2hhx", &mac[cnt]);
+		if (!res)
+		{
+			printf("The MAC address must be specified in colon-separated format, such as 12:34:56:78:9A:BC.\n\n");
+			print_usage();
+			return TASK_ERROR_USAGE;
+		}
+	}
+	return 0;
+}
+
+//--------------------------------------------
+int task_check_ltk(char *arg)
+{
+	if (strlen(arg) != 32)
+	{
+		printf("The LTK length must be 32 hexadecimal characters.\n\n");
+		print_usage();
+		return TASK_ERROR_USAGE;
+	}
+	for (size_t cnt = 0; cnt < 32; cnt++)
+	{
+		if (!(ishexchar(arg[cnt])) && !(isdigit(arg[cnt])))
+		{
+			printf("LTK must consist of hexadecimal characters only.\n\n");
+			print_usage();
+			return TASK_ERROR_USAGE;
+		}
+	}
+	return 0;
 }
 
 //--------------------------------------------
@@ -117,20 +393,9 @@ int task_start(task_settings_t *ts, int gui)
 	}
 	if (ts->opt_L)
 	{
-		if (strlen(ts->opt_L_arg) != 32)
+		if (task_check_ltk(ts->opt_L_arg))
 		{
-			printf("The LTK length must be 32 hexadecimal characters.\n\n");
-			print_usage();
 			return TASK_ERROR_USAGE;
-		}
-		for (size_t cnt = 0; cnt < 32; cnt++)
-		{
-			if (!(ishexchar(ts->opt_L_arg[cnt])) && !(isdigit(ts->opt_L_arg[cnt])))
-			{
-				printf("LTK must consist of hexadecimal characters only.\n\n");
-				print_usage();
-				return TASK_ERROR_USAGE;
-			}
 		}
 	}
 	if (ts->opt_s)
@@ -160,13 +425,32 @@ int task_start(task_settings_t *ts, int gui)
 			print_usage();
 			return TASK_ERROR_USAGE;
 		}
+		sniffer->reset();
 		if (ts->opt_R)
 		{
 			int rssi;
-			rssi = atoi(ts->opt_R_arg);
+			if (task_parse_rssi(ts->opt_R_arg, &rssi))
+			{
+				return TASK_ERROR_USAGE;
+			}
 			if (sniffer->min_rssi_set)
 			{
 				sniffer->min_rssi_set((int8_t)rssi);
+			}
+			else
+			{
+				printf("Warning: The -R option is not supported by the current sniffer device and will be ignored.\n");
+			}
+		}
+		if (ts->opt_L)
+		{
+			if (sniffer->ltk_set)
+			{
+				sniffer->ltk_set(ts->opt_L_arg, 32, false);
+			}
+			else
+			{
+				printf("Warning: The -L option is not supported by the current sniffer device and will be ignored.\n");
 			}
 		}
 		if (ts->opt_e)
@@ -177,65 +461,57 @@ int task_start(task_settings_t *ts, int gui)
 			}
 			else
 			{
-				printf("Warning: The -e option is ignored for all sniffers except Sniffle.\n");
+				printf("Warning: The -e option is not supported by the current sniffer device and will be ignored.\n");
 			}
 		}
 		if (ts->opt_c)
 		{
-			int channel;
-			channel = atoi(ts->opt_c_arg);
-			if (channel > 39 || channel < 37)
+			uint8_t hop_map[3];
+			uint8_t hop_map_size;
+			if (task_parse_channels(ts->opt_c_arg, hop_map, &hop_map_size) < 0)
 			{
-				printf("This -c option argument is not supported.\n\n");
-				print_usage();
 				return TASK_ERROR_USAGE;
 			}
 			if (sniffer->adv_channel_set)
 			{
-				sniffer->adv_channel_set((uint8_t)channel);
+				sniffer->adv_channel_set(hop_map, hop_map_size);
+			}
+			else
+			{
+				printf("Warning: The -c option is not supported by the current sniffer device and will be ignored.\n");
+			}
+		}
+		if (ts->opt_f)
+		{
+			uint8_t filter;
+			if (task_parse_filter(ts->opt_f_arg, &filter) < 0)
+			{
+				return TASK_ERROR_USAGE;
+			}
+			if (sniffer->follow_filter_set)
+			{
+				sniffer->follow_filter_set(filter);
+			}
+			else
+			{
+				printf("Warning: The -f option is not supported by the current sniffer device and will be ignored.\n");
 			}
 		}
 		if (ts->opt_m)
 		{
 			uint8_t mac[6];
 			uint8_t mac_addr_type = 0;
-			int res;
-			char *buf;
-
-			buf = ts->opt_m_arg;
-			if (strlen(ts->opt_m_arg) != 17 && strlen(ts->opt_m_arg) != 18)
+			if (task_parse_mac_address(ts->opt_m_arg, mac, &mac_addr_type) < 0)
 			{
-				printf("The MAC address must be specified in colon-separated format, such as 12:34:56:78:9A:BC.\n\n");
-				printf("The MAC address may have an 'r' at the end if it is a random type, such as 12:34:56:78:9A:BCr.\n\n");
-				print_usage();
 				return TASK_ERROR_USAGE;
-			}
-			if (strlen(ts->opt_m_arg) == 18)
-			{
-				if (buf[17] == 'r')
-				{
-					mac_addr_type = 1;
-				}
-				else
-				{
-					printf("The MAC address may have an 'r' at the end if it is a random type, such as 12:34:56:78:9A:BCr.\n\n");
-					print_usage();
-					return TASK_ERROR_USAGE;
-				}
-			}
-			for (size_t cnt = 0; cnt < sizeof(mac); cnt++, buf += 3)
-			{
-				res = sscanf((const char *)buf, "%2hhx", &mac[cnt]);
-				if (!res)
-				{
-					printf("The MAC address must be specified in colon-separated format, such as 12:34:56:78:9A:BC.\n\n");
-					print_usage();
-					return TASK_ERROR_USAGE;
-				}
 			}
 			if (sniffer->mac_addr_set)
 			{
 				sniffer->mac_addr_set(mac, mac_addr_type);
+			}
+			else
+			{
+				printf("Warning: The -m option is not supported by the current sniffer device and will be ignored.\n");
 			}
 		}
 		if ((res = thread_sniff_init(ts->opt_p_arg, sniffer, baudr)) < 0)

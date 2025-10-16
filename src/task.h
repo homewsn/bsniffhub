@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2020, 2024 Vladimir Alemasov
+* Copyright (c) 2020 - 2025 Vladimir Alemasov
 * All rights reserved
 *
 * This program and the accompanying materials are distributed under
@@ -31,6 +31,7 @@ typedef struct task_settings
 	int opt_e;
 	int opt_c;
 	int opt_m;
+	int opt_f;
 	char *opt_s_arg;
 	char *opt_p_arg;
 	char *opt_b_arg;
@@ -42,6 +43,7 @@ typedef struct task_settings
 	char *opt_R_arg;
 	char *opt_c_arg;
 	char *opt_m_arg;
+	char *opt_f_arg;
 } task_settings_t;
 
 #define TASK_ERROR_USAGE                         -1
@@ -53,10 +55,16 @@ typedef struct task_settings
 #define TASK_ERROR_LL_NOT_SUPPORTED              -7
 #define TASK_ERROR_OPEN_PIPE                     -8
 #define TASK_ERROR_WRITE_PIPE                    -9
+#define TASK_ERROR_INSUFFICIENT_MEMORY           -10
 
 //--------------------------------------------
 void print_usage(void);
 int task_start(task_settings_t *ts, int gui);
 void task_stop(int gui);
+int task_parse_filter(char *arg, uint8_t *filter);
+int task_parse_channels(char *arg, uint8_t *hop_map, uint8_t *hop_map_size);
+int task_parse_rssi(char *arg, int *rssi);
+int task_parse_mac_address(char *arg, uint8_t *mac, uint8_t *mac_addr_type);
+int task_check_ltk(char *arg);
 
 #endif /* TASK_H_ */

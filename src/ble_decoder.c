@@ -121,6 +121,10 @@ typedef struct ble_conn
 	uint64_t master_encrypted_packet_counter;
 	uint64_t slave_encrypted_packet_counter;
 	uint16_t connection_event_counter;
+	uint8_t cis_central_to_peripheral_bn;
+	uint8_t cis_peripheral_to_central_bn;
+	uint64_t cis_central_encrypted_packet_counter;
+	uint64_t cis_peripheral_encrypted_packet_counter;
 	ble_time_cfg_t time_cfg;
 	ble_time_cfg_t time_cfg_update;
 	uint16_t time_cfg_update_instant;
@@ -619,7 +623,7 @@ static void ble_session_key_generate(ble_conn_t *conn)
 // Bluetooth core specification:             NIST Special Publication 800-38C:
 // Message Integrity Check (MIC)        <=>  Message Authentication Code (MAC)
 // Additional authenticated data (AAD)  <=>  Associated data
-static int ble_packet_decrypt(ble_conn_t *conn, uint8_t *buf, size_t *size)
+static int ble_packet_decrypt(ble_conn_t *conn, ble_info_t *info)
 {
 	static uint8_t pdu_buf[MAXIMUM_PDU_AES_BUFFER_LENGTH];
 	uint8_t nonce[NONCE_LENGTH];
@@ -628,6 +632,8 @@ static int ble_packet_decrypt(ble_conn_t *conn, uint8_t *buf, size_t *size)
 	uint8_t header_flags;
 	uint8_t pdu_len;
 	int res;
+	uint8_t *buf = info->buf;
+	size_t *size = &info->size;
 
 	header_flags = buf[ACCESS_ADDRESS_LENGTH];
 	cp_flag = header_flags & CP_MASK ? 1 : 0;
@@ -638,23 +644,56 @@ static int ble_packet_decrypt(ble_conn_t *conn, uint8_t *buf, size_t *size)
 		return -1;
 	}
 
+	// BLUETOOTH CORE SPECIFICATION Version 6.1 | Vol 6, Part E
+	// 2 CCM
 	// Nonce
-	nonce[0] = conn->current_packet_direction == DIR_MASTER_SLAVE ?
-		(uint8_t)(conn->master_encrypted_packet_counter) :
-		(uint8_t)(conn->slave_encrypted_packet_counter);
-	nonce[1] = conn->current_packet_direction == DIR_MASTER_SLAVE ?
-		(uint8_t)(conn->master_encrypted_packet_counter >> 8) :
-		(uint8_t)(conn->slave_encrypted_packet_counter >> 8);
-	nonce[2] = conn->current_packet_direction == DIR_MASTER_SLAVE ?
-		(uint8_t)(conn->master_encrypted_packet_counter >> 16) :
-		(uint8_t)(conn->slave_encrypted_packet_counter >> 16);
-	nonce[3] = conn->current_packet_direction == DIR_MASTER_SLAVE ?
-		(uint8_t)(conn->master_encrypted_packet_counter >> 24) :
-		(uint8_t)(conn->slave_encrypted_packet_counter >> 24);
-	nonce[4] = conn->current_packet_direction == DIR_MASTER_SLAVE ?
-		((uint8_t)(conn->master_encrypted_packet_counter >> 32) & 0x7F) | 0x80 :
-		((uint8_t)(conn->slave_encrypted_packet_counter >> 32) & 0x7F);
 	memcpy(&nonce[5], conn->iv, sizeof(conn->iv));
+
+	switch (info->pdu)
+	{
+	case PDU_ACL:
+		nonce[0] = conn->current_packet_direction == DIR_MASTER_SLAVE ?
+			(uint8_t)(conn->master_encrypted_packet_counter) :
+			(uint8_t)(conn->slave_encrypted_packet_counter);
+		nonce[1] = conn->current_packet_direction == DIR_MASTER_SLAVE ?
+			(uint8_t)(conn->master_encrypted_packet_counter >> 8) :
+			(uint8_t)(conn->slave_encrypted_packet_counter >> 8);
+		nonce[2] = conn->current_packet_direction == DIR_MASTER_SLAVE ?
+			(uint8_t)(conn->master_encrypted_packet_counter >> 16) :
+			(uint8_t)(conn->slave_encrypted_packet_counter >> 16);
+		nonce[3] = conn->current_packet_direction == DIR_MASTER_SLAVE ?
+			(uint8_t)(conn->master_encrypted_packet_counter >> 24) :
+			(uint8_t)(conn->slave_encrypted_packet_counter >> 24);
+		nonce[4] = conn->current_packet_direction == DIR_MASTER_SLAVE ?
+			((uint8_t)(conn->master_encrypted_packet_counter >> 32) & 0x7F) | 0x80 :
+			((uint8_t)(conn->slave_encrypted_packet_counter >> 32) & 0x7F);
+		break;
+	case PDU_ISO_CIG:
+	{
+		nonce[0] = conn->current_packet_direction == DIR_MASTER_SLAVE ?
+			(uint8_t)(conn->cis_central_encrypted_packet_counter) :
+			(uint8_t)(conn->cis_peripheral_encrypted_packet_counter);
+		nonce[1] = conn->current_packet_direction == DIR_MASTER_SLAVE ?
+			(uint8_t)(conn->cis_central_encrypted_packet_counter >> 8) :
+			(uint8_t)(conn->cis_peripheral_encrypted_packet_counter >> 8);
+		nonce[2] = conn->current_packet_direction == DIR_MASTER_SLAVE ?
+			(uint8_t)(conn->cis_central_encrypted_packet_counter >> 16) :
+			(uint8_t)(conn->cis_peripheral_encrypted_packet_counter >> 16);
+		nonce[3] = conn->current_packet_direction == DIR_MASTER_SLAVE ?
+			(uint8_t)(conn->cis_central_encrypted_packet_counter >> 24) :
+			(uint8_t)(conn->cis_peripheral_encrypted_packet_counter >> 24);
+		nonce[4] = conn->current_packet_direction == DIR_MASTER_SLAVE ?
+			((uint8_t)(conn->cis_central_encrypted_packet_counter >> 32) & 0x7F) | 0x80 :
+			((uint8_t)(conn->cis_peripheral_encrypted_packet_counter >> 32) & 0x7F);
+		uint32_t iv_acl_low = *(uint32_t *)&nonce[5];
+		uint32_t iv_iso_low = *(uint32_t *)&buf[0];
+		iv_acl_low ^= iv_iso_low;
+		memcpy(&nonce[5], &iv_acl_low, sizeof(iv_acl_low));
+		break;
+	}
+	default:
+		return -1;
+	}
 
 	// AAD (associated data)
 	associated_data[0] = header_flags & 0xE3;
@@ -832,14 +871,29 @@ static ble_packet_decode_res_t packet_decode(ble_info_t *info, uint8_t recursion
 		return PACKET_NOT_PROCESSED;
 	}
 
-	if (!memcmp(buf, adv_channel_access_address, ACCESS_ADDRESS_LENGTH))
+	if (info->pdu == PDU_UNKNOWN)
 	{
-		// advertising channel packet
-		info->pdu = PDU_ADV;
-		if (info->channel != -1 && info->channel < 37)
+		if (!memcmp(buf, adv_channel_access_address, ACCESS_ADDRESS_LENGTH))
 		{
-			info->pdu = PDU_AUX_ADV;
+			// advertising channel packet
+			info->pdu = PDU_ADV;
+			if (info->channel != -1 && info->channel < 37)
+			{
+				info->pdu = PDU_AUX;
+			}
 		}
+		else if (conn.anchor_point)
+		{
+			info->pdu = PDU_ACL;
+		}
+		else
+		{
+			// unknown pdu
+		}
+	}
+
+	if (info->pdu == PDU_ADV || info->pdu == PDU_AUX)
+	{
 		header_flags = buf[ACCESS_ADDRESS_LENGTH];
 		header_length = buf[ACCESS_ADDRESS_LENGTH + 1];
 
@@ -919,12 +973,81 @@ static ble_packet_decode_res_t packet_decode(ble_info_t *info, uint8_t recursion
 			break;
 		}
 	}
-	else if (conn.anchor_point)
+	else if (info->pdu == PDU_ISO_CIG)
+	{
+		conn.current_packet_direction = info->dir;
+		if (conn.encrypted_packet && info->status_crc != CHECK_FAIL)
+		{
+			static uint16_t cis_central_event_counter;
+			static uint16_t cis_peripheral_event_counter;
+			uint16_t diff;
+			uint64_t *enc_cnt;
+
+			if (conn.current_packet_direction == DIR_MASTER_SLAVE)
+			{
+				if (info->counter_conn < cis_central_event_counter)
+				{
+					diff = (0x10000 + info->counter_conn) - cis_central_event_counter;
+				}
+				else
+				{
+					diff = info->counter_conn - cis_central_event_counter;
+				}
+				cis_central_event_counter = info->counter_conn;
+				conn.cis_central_encrypted_packet_counter += diff * conn.cis_central_to_peripheral_bn;
+				enc_cnt = &conn.cis_central_encrypted_packet_counter;
+			}
+			else
+			{
+				if (info->counter_conn < cis_peripheral_event_counter)
+				{
+					diff = (0x10000 + info->counter_conn) - cis_peripheral_event_counter;
+				}
+				else
+				{
+					diff = info->counter_conn - cis_peripheral_event_counter;
+				}
+				cis_peripheral_event_counter = info->counter_conn;
+				conn.cis_peripheral_encrypted_packet_counter += diff * conn.cis_peripheral_to_central_bn;
+				enc_cnt = &conn.cis_peripheral_encrypted_packet_counter;
+			}
+
+			header_length = buf[ACCESS_ADDRESS_LENGTH + 1];
+			if (header_length > 0 && info->status_enc != ENC_DECRYPTED)
+			{
+				// decryption
+				if (ble_packet_decrypt(&conn, info) < 0)
+				{
+					size_t cnt;
+					diff = conn.current_packet_direction == DIR_MASTER_SLAVE ?
+						(uint8_t)(conn.cis_central_to_peripheral_bn) :
+						(uint8_t)(conn.cis_peripheral_to_central_bn);
+					(*enc_cnt) -= diff * ISO_DECRYPTION_ATTEMPTS_NUMBER;
+					for (cnt = 0; cnt < ISO_DECRYPTION_ATTEMPTS_NUMBER * 2; cnt++)
+					{
+						if (!ble_packet_decrypt(&conn, info))
+						{
+							break;
+						}
+						(*enc_cnt)++;
+					}
+					if (cnt == DECRYPTION_ATTEMPTS_NUMBER * 2)
+					{
+						// unsuccessful decryption
+						info->status_enc = ENC_ENCRYPTED;
+						info->status_mic = CHECK_FAIL;
+						return PACKET_NOT_PROCESSED;
+					}
+				}
+				info->status_enc = ENC_DECRYPTED;
+				info->status_mic = CHECK_OK;
+			}
+		}
+	}
+	else if (info->pdu == PDU_ACL)
 	{
 		// process data channel packet only after CONNECT_REQ event 
 		uint8_t more_data;
-
-		info->pdu = PDU_DATA;
 
 		// packet length checking
 		header_flags = buf[ACCESS_ADDRESS_LENGTH];
@@ -1074,8 +1197,8 @@ static ble_packet_decode_res_t packet_decode(ble_info_t *info, uint8_t recursion
 											__LINE__);
 									}
 #endif
+								}
 							}
-						}
 							else
 							{
 								// unknown
@@ -1239,7 +1362,7 @@ static ble_packet_decode_res_t packet_decode(ble_info_t *info, uint8_t recursion
 #endif
 
 				// decryption
-				if (ble_packet_decrypt(&conn, info->buf, &info->size) < 0)
+				if (ble_packet_decrypt(&conn, info) < 0)
 				{
 					size_t cnt;
 					pkt_dir_t current_packet_direction = conn.current_packet_direction;
@@ -1248,7 +1371,7 @@ static ble_packet_decode_res_t packet_decode(ble_info_t *info, uint8_t recursion
 					(*enc_cnt)--;
 					for (cnt = 0; cnt < DECRYPTION_ATTEMPTS_NUMBER; cnt++)
 					{
-						if (!ble_packet_decrypt(&conn, info->buf, &info->size))
+						if (!ble_packet_decrypt(&conn, info))
 						{
 							break;
 						}
@@ -1273,7 +1396,7 @@ static ble_packet_decode_res_t packet_decode(ble_info_t *info, uint8_t recursion
 						(*enc_cnt)--;
 						for (cnt = 0; cnt < DECRYPTION_ATTEMPTS_NUMBER; cnt++)
 						{
-							if (!ble_packet_decrypt(&conn, info->buf, &info->size))
+							if (!ble_packet_decrypt(&conn, info))
 							{
 								break;
 							}
@@ -1432,7 +1555,13 @@ static ble_packet_decode_res_t packet_decode(ble_info_t *info, uint8_t recursion
 					conn.encrypted_packet = 0;
 					conn.master_encrypted_packet_counter = 0;
 					conn.slave_encrypted_packet_counter = 0;
+					conn.cis_central_encrypted_packet_counter = 0;
+					conn.cis_peripheral_encrypted_packet_counter = 0;
 				}
+				break;
+			case LL_CIS_REQ:
+				conn.cis_central_to_peripheral_bn = buf[HDR_LENGTH + cp_flag + 1 + 22] & 0x0F;
+				conn.cis_peripheral_to_central_bn = (buf[HDR_LENGTH + cp_flag + 1 + 22] >> 4) & 0x0F;
 				break;
 			default:
 				break;

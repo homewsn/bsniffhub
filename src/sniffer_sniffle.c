@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2020, 2021, 2024 Vladimir Alemasov
+* Copyright (c) 2020 - 2025 Vladimir Alemasov
 * All rights reserved
 *
 * This program and the accompanying materials are distributed under
@@ -15,6 +15,7 @@
 #include <stdint.h>     /* uint8_t ... uint64_t */
 #include <assert.h>     /* assert */
 #include <stdlib.h>     /* malloc */
+#include <stdbool.h>    /* bool */
 #include <string.h>     /* memset */
 #include "msg_pckt_ble.h"
 #include "msg_to_cli.h"
@@ -323,13 +324,38 @@ static int packet_decode(uint8_t *buf, size_t len, ble_info_t **info)
 		(*info)->dir = DIR_UNKNOWN;
 
 		header_flags = ((*info)->buf)[ACCESS_ADDRESS_LENGTH];
-		if (((header_flags & PDU_TYPE_MASK) == ADV_IND) && !mac_filt)
+		if (!mac_filt)
 		{
-			memcpy_reverse(adv_addr, &((*info)->buf)[ACCESS_ADDRESS_LENGTH + MINIMUM_HEADER_LENGTH], DEVICE_ADDRESS_LENGTH);
-			if (!list_adv_find_addr(&adv_devs, adv_addr))
+			if ((header_flags & PDU_TYPE_MASK) == ADV_IND)
 			{
-				list_adv_add(&adv_devs, adv_addr, header_flags & CSA_MASK ? 1 : 0, header_flags & TXADD_MASK ? 1 : 0);
-				msg_to_cli_add_follow_device_command(adv_addr, (*info)->rssi, header_flags & TXADD_MASK ? 1 : 0);
+				memcpy_reverse(adv_addr, &((*info)->buf)[ACCESS_ADDRESS_LENGTH + MINIMUM_HEADER_LENGTH], DEVICE_ADDRESS_LENGTH);
+				if (!list_adv_find_addr(&adv_devs, adv_addr))
+				{
+					list_adv_add(&adv_devs, adv_addr, header_flags & CSA_MASK ? 1 : 0, header_flags & TXADD_MASK ? 1 : 0);
+					msg_to_cli_add_follow_device_command(adv_addr, (*info)->rssi, header_flags & TXADD_MASK ? 1 : 0);
+				}
+			}
+			else if ((header_flags & PDU_TYPE_MASK) == ADV_EXT_IND)
+			{
+				uint8_t extended_header_length = (((*info)->buf)[ACCESS_ADDRESS_LENGTH + MINIMUM_HEADER_LENGTH]) & 0x3F;
+				// 2.3.4 Common Extended Advertising Payload Format
+				// The Extended Header field is a variable length header that is present if,
+				// and only if, the Extended Header Length field is non-zero.
+				if (extended_header_length)
+				{
+					uint8_t extended_header_flags = ((*info)->buf)[ACCESS_ADDRESS_LENGTH + MINIMUM_HEADER_LENGTH + 1];
+					if ((extended_header_flags & EXTENDED_HEADER_ADVERTISING_ADDRESS_Msk) >> EXTENDED_HEADER_ADVERTISING_ADDRESS_Pos)
+					{
+						// Extended advertising packet with advertising address
+						uint8_t adv_addr[DEVICE_ADDRESS_LENGTH];
+						memcpy_reverse(adv_addr, &((*info)->buf)[ACCESS_ADDRESS_LENGTH + MINIMUM_HEADER_LENGTH + 2], DEVICE_ADDRESS_LENGTH);
+						if (!list_adv_find_addr(&adv_devs, adv_addr))
+						{
+							list_adv_add(&adv_devs, adv_addr, 1, header_flags & TXADD_MASK ? 1 : 0);
+							msg_to_cli_add_follow_device_command(adv_addr, (*info)->rssi, 1);
+						}
+					}
+				}
 			}
 		}
 	}
@@ -341,20 +367,48 @@ static int packet_decode(uint8_t *buf, size_t len, ble_info_t **info)
 		}
 		else
 		{
+			uint8_t header_flags;
 			memcpy((*info)->buf, adv_channel_access_address, ACCESS_ADDRESS_LENGTH);
-			if (((((*info)->buf)[ACCESS_ADDRESS_LENGTH]) & PDU_TYPE_MASK) == AUX_CONNECT_REQ)
+			header_flags = ((*info)->buf)[ACCESS_ADDRESS_LENGTH];
+			if (((header_flags & PDU_TYPE_MASK) == AUX_ADV_IND) && !mac_filt)
+			{
+				// AUX_ADV_IND, AUX_SCAN_RSP, AUX_SYNC_IND, AUX_CHAIN_IND, AUX_SYNC_SUBEVENT_IND, AUX_SYNC_SUBEVENT_RSP
+				uint8_t extended_header_length = (((*info)->buf)[ACCESS_ADDRESS_LENGTH + MINIMUM_HEADER_LENGTH]) & 0x3F;
+				// 2.3.4 Common Extended Advertising Payload Format
+				// The Extended Header field is a variable length header that is present if,
+				// and only if, the Extended Header Length field is non-zero.
+				if (extended_header_length)
+				{
+					uint8_t extended_header_flags = ((*info)->buf)[ACCESS_ADDRESS_LENGTH + MINIMUM_HEADER_LENGTH + 1];
+					if ((extended_header_flags & EXTENDED_HEADER_ADVERTISING_ADDRESS_Msk) >> EXTENDED_HEADER_ADVERTISING_ADDRESS_Pos)
+					{
+						// Extended advertising packet with advertising address
+						uint8_t adv_addr[DEVICE_ADDRESS_LENGTH];
+						memcpy_reverse(adv_addr, &((*info)->buf)[ACCESS_ADDRESS_LENGTH + MINIMUM_HEADER_LENGTH + 2], DEVICE_ADDRESS_LENGTH);
+						if (!list_adv_find_addr(&adv_devs, adv_addr))
+						{
+							list_adv_add(&adv_devs, adv_addr, 1, header_flags & TXADD_MASK ? 1 : 0);
+							msg_to_cli_add_follow_device_command(adv_addr, (*info)->rssi, 1);
+						}
+					}
+				}
+			}
+			else if ((header_flags & PDU_TYPE_MASK) == AUX_CONNECT_REQ)
 			{
 				memcpy(data_channel_access_address, (*info)->buf + ACCESS_ADDRESS_LENGTH + MINIMUM_HEADER_LENGTH + DEVICE_ADDRESS_LENGTH + DEVICE_ADDRESS_LENGTH, ACCESS_ADDRESS_LENGTH);
 				data_channel_crc_init = (((*info)->buf)[ACCESS_ADDRESS_LENGTH + MINIMUM_HEADER_LENGTH + DEVICE_ADDRESS_LENGTH + DEVICE_ADDRESS_LENGTH + ACCESS_ADDRESS_LENGTH]) |
 					(((*info)->buf)[ACCESS_ADDRESS_LENGTH + MINIMUM_HEADER_LENGTH + DEVICE_ADDRESS_LENGTH + DEVICE_ADDRESS_LENGTH + ACCESS_ADDRESS_LENGTH + 1] << 8) |
 					(((*info)->buf)[ACCESS_ADDRESS_LENGTH + MINIMUM_HEADER_LENGTH + DEVICE_ADDRESS_LENGTH + DEVICE_ADDRESS_LENGTH + ACCESS_ADDRESS_LENGTH + 2] << 16);
 			}
-			else if (((((*info)->buf)[ACCESS_ADDRESS_LENGTH]) & PDU_TYPE_MASK) == AUX_CONNECT_RSP)
+			else if ((header_flags & PDU_TYPE_MASK) == AUX_CONNECT_RSP)
 			{
 				data_pdu = 1;
 			}
 		}
 	}
+
+	(*info)->pdu = PDU_UNKNOWN;
+
 	if ((*info)->status_crc)
 	{
 		uint32_t crc;
@@ -393,6 +447,15 @@ static void init(HANDLE hndl)
 }
 
 //--------------------------------------------
+static void reset(void)
+{
+	min_rssi = -128;
+	adv_channel = 37;
+	mac_filt = 0;
+	aux_adv = 0;
+}
+
+//--------------------------------------------
 static int serial_packet_decode(uint8_t *buf, size_t len, ble_info_t **info)
 {
 	size_t cnt;
@@ -426,7 +489,7 @@ static int serial_packet_decode(uint8_t *buf, size_t len, ble_info_t **info)
 }
 
 //--------------------------------------------
-static void follow(uint8_t *buf, size_t size)
+static void follow_device(uint8_t *buf, size_t size)
 {
 	list_adv_t *item;
 	uint8_t adv_addr[DEVICE_ADDRESS_LENGTH];
@@ -464,9 +527,9 @@ static void min_rssi_set(int8_t rssi)
 }
 
 //--------------------------------------------
-static void adv_channel_set(uint8_t channel)
+static void adv_channel_set(uint8_t *hop_map, uint8_t hop_map_size)
 {
-	adv_channel = channel;
+	adv_channel = hop_map[0];
 }
 
 //--------------------------------------------
@@ -489,5 +552,5 @@ static void close_free(void)
 }
 
 //--------------------------------------------
-SNIFFER(sniffer_sniffle, "S", 2000000, 0, init, serial_packet_decode, follow, NULL, NULL, NULL,\
-	    min_rssi_set, adv_channel_set, mac_addr_set, follow_aux_connect, close_free);
+SNIFFER(sniffer_sniffle, "S", 2000000, 0, init, reset, serial_packet_decode, follow_device, NULL, NULL, NULL,\
+	    min_rssi_set, adv_channel_set, mac_addr_set, follow_aux_connect, NULL, close_free);

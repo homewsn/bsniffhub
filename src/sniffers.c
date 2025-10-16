@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2020, 2021 Vladimir Alemasov
+* Copyright (c) 2020 - 2025 Vladimir Alemasov
 * All rights reserved
 *
 * This program and the accompanying materials are distributed under
@@ -13,6 +13,7 @@
 */
 
 #include <stdint.h>     /* uint8_t ... uint64_t */
+#include <stdbool.h>    /* bool */
 #include <string.h>     /* strncmp */
 #include "msg_pckt_ble.h"
 #include "serial.h"
@@ -24,9 +25,10 @@ extern const sniffer_t sniffer_nrf4;
 extern const sniffer_t sniffer_sniffle;
 extern const sniffer_t sniffer_ti2;
 extern const sniffer_t sniffer_stm32wb;
+extern const sniffer_t sniffer_blesniff;
 
 //--------------------------------------------
-SNIFFERS(&sniffer_nrf3, &sniffer_nrf4, &sniffer_sniffle, &sniffer_ti2, &sniffer_stm32wb);
+SNIFFERS(&sniffer_nrf3, &sniffer_nrf4, &sniffer_sniffle, &sniffer_ti2, &sniffer_stm32wb, &sniffer_blesniff);
 
 //--------------------------------------------
 const sniffer_t *get_sniffer(char *id)

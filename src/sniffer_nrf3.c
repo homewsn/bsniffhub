@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2020, 2021, 2024 Vladimir Alemasov
+* Copyright (c) 2020 - 2025 Vladimir Alemasov
 * All rights reserved
 *
 * This program and the accompanying materials are distributed under
@@ -16,6 +16,7 @@
 #include <assert.h>     /* assert */
 #include <stdlib.h>     /* malloc */
 #include <stdio.h>      /* sscanf */
+#include <stdbool.h>    /* bool */
 #include <string.h>     /* memset */
 #include "msg_pckt_ble.h"
 #include "msg_to_cli.h"
@@ -464,6 +465,9 @@ static int packet_decode(uint8_t *buf, size_t len, ble_info_t **info)
 			buf + MSG_HEADER_SIZE + hdr_length + ACCESS_ADDRESS_LENGTH + MINIMUM_HEADER_LENGTH + cp_flag + 1,
 			(*info)->size - ACCESS_ADDRESS_LENGTH - MINIMUM_HEADER_LENGTH - cp_flag);
 	}
+
+	(*info)->pdu = PDU_UNKNOWN;
+
 	return (int)(*info)->size;
 }
 
@@ -476,6 +480,14 @@ static void init(HANDLE hndl)
 	dev = hndl;
 	command_ping_req_v1_send();
 	last_cmd = SENT_CMD_PING_REQ;
+}
+
+//--------------------------------------------
+static void reset(void)
+{
+	min_rssi = -128;
+	adv_channel = 0;
+	mac_filt = 0;
 }
 
 //--------------------------------------------
@@ -527,7 +539,7 @@ static int serial_packet_decode(uint8_t *buf, size_t len, ble_info_t **pkt_info)
 }
 
 //--------------------------------------------
-static void follow(uint8_t *buf, size_t size)
+static void follow_device(uint8_t *buf, size_t size)
 {
 	list_adv_t *item;
 
@@ -586,9 +598,9 @@ static void min_rssi_set(int8_t rssi)
 }
 
 //--------------------------------------------
-static void adv_channel_set(uint8_t channel)
+static void adv_channel_set(uint8_t *hop_map, uint8_t hop_map_size)
 {
-	adv_channel = channel;
+	adv_channel = hop_map[0];
 }
 
 //--------------------------------------------
@@ -606,5 +618,5 @@ static void close_free(void)
 }
 
 //--------------------------------------------
-SNIFFER(sniffer_nrf3, "N3", 1000000, 1, init, serial_packet_decode, follow, passkey_set, oob_key_set, NULL,\
-	    min_rssi_set, adv_channel_set, mac_addr_set, NULL, close_free);
+SNIFFER(sniffer_nrf3, "N3", 1000000, 1, init, reset, serial_packet_decode, follow_device, passkey_set, oob_key_set, NULL,\
+	    min_rssi_set, adv_channel_set, mac_addr_set, NULL, NULL, close_free);

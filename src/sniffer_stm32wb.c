@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2024 Vladimir Alemasov
+* Copyright (c) 2024 - 2025 Vladimir Alemasov
 * All rights reserved
 *
 * This program and the accompanying materials are distributed under
@@ -16,6 +16,7 @@
 #include <assert.h>     /* assert */
 #include <stdlib.h>     /* malloc */
 #include <stdio.h>      /* sscanf */
+#include <stdbool.h>    /* bool */
 #include <string.h>     /* memset */
 #include "msg_pckt_ble.h"
 #include "msg_to_cli.h"
@@ -175,6 +176,8 @@ static int packet_decode(uint8_t *buf, size_t len, ble_info_t **info)
 		}
 	}
 
+	(*info)->pdu = PDU_UNKNOWN;
+
 	if ((*info)->status_crc == CHECK_OK)
 	{
 		uint32_t crc;
@@ -204,6 +207,14 @@ static void init(HANDLE hndl)
 	{
 		command_set_sniffer_target_send(mac_addr);
 	}
+}
+
+//--------------------------------------------
+static void reset(void)
+{
+	min_rssi = -128;
+	adv_channel = 37;
+	mac_filt = 0;
 }
 
 //--------------------------------------------
@@ -244,7 +255,7 @@ static int serial_packet_decode(uint8_t *buf, size_t len, ble_info_t **info)
 }
 
 //--------------------------------------------
-static void follow(uint8_t *buf, size_t size)
+static void follow_device(uint8_t *buf, size_t size)
 {
 	list_adv_t *item;
 	uint8_t adv_addr[DEVICE_ADDRESS_LENGTH];
@@ -271,9 +282,9 @@ static void min_rssi_set(int8_t rssi)
 }
 
 //--------------------------------------------
-static void adv_channel_set(uint8_t channel)
+static void adv_channel_set(uint8_t *hop_map, uint8_t hop_map_size)
 {
-	adv_channel = channel;
+	adv_channel = hop_map[0];
 }
 
 //--------------------------------------------
@@ -290,5 +301,5 @@ static void close_free(void)
 }
 
 //--------------------------------------------
-SNIFFER(sniffer_stm32wb, "WB", 921600, 0, init, serial_packet_decode, follow, NULL, NULL, NULL,\
-	    min_rssi_set, adv_channel_set, mac_addr_set, NULL, close_free);
+SNIFFER(sniffer_stm32wb, "WB", 921600, 0, init, reset, serial_packet_decode, follow_device, NULL, NULL, NULL,\
+	    min_rssi_set, adv_channel_set, mac_addr_set, NULL, NULL, close_free);
