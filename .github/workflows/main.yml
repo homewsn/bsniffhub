@@ -152,10 +152,16 @@ jobs:
     - uses: actions/checkout@v4
     - name: Install Msbuild
       uses: microsoft/setup-msbuild@v2
-    - name: Install VS 2017 Build Tools
-      run: |
-        (New-Object Net.WebClient).DownloadFile("${{ env.vs_bt_url }}", "${{ env.vs_bt_dir }}\vs_BuildTools.exe")
-        ${{ env.vs_bt_dir }}\vs_BuildTools.exe --add Microsoft.VisualStudio.Workload.MSBuildTools --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --quiet --wait --norestart --force
+    - name: Run a one-line script
+      run: Invoke-webrequest -uri  https://aka.ms/vs/15/release/vs_buildtools.exe -OutFile vs_buildtools.exe
+      shell: powershell
+    - name: install build tools
+      run: .\vs_buildtools.exe --wait --norestart --passive --installPath "C:\Program Files (x86)\Microsoft Visual Studio\2017\BuildTools" --add Microsoft.VisualStudio.Workload.ManagedDesktopBuildTools --add Microsoft.VisualStudio.Workload.MSBuildTools
+      shell: cmd
+#    - name: Install VS 2017 Build Tools
+#      run: |
+#        (New-Object Net.WebClient).DownloadFile("${{ env.vs_bt_url }}", "${{ env.vs_bt_dir }}\vs_BuildTools.exe")
+#        ${{ env.vs_bt_dir }}\vs_BuildTools.exe --add Microsoft.VisualStudio.Workload.MSBuildTools --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --quiet --wait --norestart --force
     - name: Before Build
       run: |
         (New-Object Net.WebClient).DownloadFile("${{ env.npcap_url }}", "${{ env.npcap_dir }}\npcap.zip")
