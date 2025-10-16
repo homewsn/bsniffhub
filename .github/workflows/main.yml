@@ -28,7 +28,6 @@ jobs:
     - name: Install Packages
       run: |
         sudo apt-get update
-        sudo apt-get upgrade -y
         sudo apt-get install -y libpcap-dev
     - name: Download and install IUP
       run: |
@@ -75,6 +74,7 @@ jobs:
     - name: Install Packages
       run: |
         sudo apt-get update
+        sudo apt-get upgrade -y
         sudo apt-get install -y libpcap-dev
     - name: Before Build
       run: |
