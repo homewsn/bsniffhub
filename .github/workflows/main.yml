@@ -85,6 +85,29 @@ jobs:
     - name: Build
       run: make
 
+  Ubuntu-24-gcc:
+    runs-on: ubuntu-24.04
+    env:
+      # URLs
+      IUP_24_URL: https://master.dl.sourceforge.net/project/iup/3.32/Linux%20Libraries/iup-3.32_Linux68_64_lib.tar.gz?viasf=1
+      # Compiler
+      CC: gcc
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install Packages
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libpcap-dev
+    - name: Before Build
+      run: |
+        mkdir /tmp/iup
+        wget $IUP_24_URL -O /tmp/iup/iup.tar.gz
+        tar -xvf /tmp/iup/iup.tar.gz
+        printf '\n' | sudo ./install
+        printf '\n' | sudo ./install_dev
+    - name: Build
+      run: make
+
   Ubuntu-Latest-clang:
     runs-on: ubuntu-latest
     env:
@@ -111,7 +134,7 @@ jobs:
       run: make bsniffhub
   
   Windows-2019-vc16:
-    runs-on: windows-2019
+    runs-on: windows-2022
     env:
       # URLs
       npcap_url: https://nmap.org/npcap/dist/npcap-sdk-1.06.zip
