@@ -140,9 +140,11 @@ jobs:
       npcap_url: https://nmap.org/npcap/dist/npcap-sdk-1.06.zip
       iup_x86_url: https://versaweb.dl.sourceforge.net/project/iup/3.30/Windows%20Libraries/Static/iup-3.30_Win32_vc16_lib.zip
       iup_x64_url: https://phoenixnap.dl.sourceforge.net/project/iup/3.30/Windows%20Libraries/Static/iup-3.30_Win64_vc16_lib.zip
+      vs_bt_url: https://aka.ms/vs/15/release/vs_BuildTools.exe
       # Folders
       npcap_dir: ${{ github.workspace }}\msvs\lib\npcap
       sln_dir: ${{ github.workspace }}\msvs
+      vs_bt_dir: ${{ github.workspace }}\vs_bt
       # use existing folders, overwrite existing VC15 library files with new ones for VC16
       iup_x86_dir: ${{ github.workspace }}\lib\iup\lib\Win32_vc15
       iup_x64_dir: ${{ github.workspace }}\lib\iup\lib\Win64_vc15
@@ -152,8 +154,8 @@ jobs:
       uses: microsoft/setup-msbuild@v2
     - name: Install VS 2017 Build Tools
       run: |
-        (New-Object Net.WebClient).DownloadFile("https://aka.ms/vs/15/release/vs_BuildTools.exe", "${{ github.workspace }}\tmp\vs_BuildTools.exe")
-        ${{ github.workspace }}\tmp\vs_BuildTools.exe --add Microsoft.VisualStudio.Workload.MSBuildTools --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --quiet --wait --norestart --force
+        (New-Object Net.WebClient).DownloadFile("${{ env.vs_bt_url }}", "${{ env.vs_bt_dir }}\vs_BuildTools.exe")
+        ${{ env.vs_bt_dir }}\vs_BuildTools.exe --add Microsoft.VisualStudio.Workload.MSBuildTools --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --quiet --wait --norestart --force
     - name: Before Build
       run: |
         (New-Object Net.WebClient).DownloadFile("${{ env.npcap_url }}", "${{ env.npcap_dir }}\npcap.zip")
