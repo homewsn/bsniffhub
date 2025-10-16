@@ -156,7 +156,7 @@ jobs:
       run: Invoke-webrequest -uri  https://aka.ms/vs/15/release/vs_buildtools.exe -OutFile vs_buildtools.exe
       shell: powershell
     - name: install build tools
-      run: .\vs_buildtools.exe --wait --norestart --passive --installPath "C:\Program Files (x86)\Microsoft Visual Studio\2017\BuildTools" --add Microsoft.VisualStudio.Workload.ManagedDesktopBuildTools --add Microsoft.VisualStudio.Workload.MSBuildTools
+      run: .\vs_buildtools.exe --add Microsoft.VisualStudio.Workload.MSBuildTools --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --quiet --wait --norestart --force
       shell: cmd
 #    - name: Install VS 2017 Build Tools
 #      run: |
@@ -171,6 +171,6 @@ jobs:
         (New-Object Net.WebClient).DownloadFile("${{ env.iup_x64_url }}", "${{ env.iup_x64_dir }}\iup_x64.zip")
         7z x ${{ env.iup_x64_dir }}\iup_x64.zip -y -o${{ env.iup_x64_dir }} iup.lib iupimglib.lib
     - name: Build x64
-      run: msbuild ${{ env.sln_dir }}\bsniffhub.sln /p:configuration=Release /p:platform=x64
+      run: msbuild ${{ env.sln_dir }}\bsniffhub.sln /p:configuration=Release /p:platform=x64 /p:PlatformToolset=v141
     - name: Build x86
       run: msbuild ${{ env.sln_dir }}\bsniffhub.sln /p:configuration=Release /p:platform=x86
