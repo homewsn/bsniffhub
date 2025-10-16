@@ -150,6 +150,10 @@ jobs:
     - uses: actions/checkout@v4
     - name: Install Msbuild
       uses: microsoft/setup-msbuild@v2
+    - name: Install VS 2017 Build Tools
+      run: |
+        curl -L -o vs_BuildTools.exe https://aka.ms/vs/15/release/vs_BuildTools.exe
+        ./vs_BuildTools.exe --add Microsoft.VisualStudio.Workload.MSBuildTools --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --quiet --wait --norestart --force
     - name: Before Build
       run: |
         (New-Object Net.WebClient).DownloadFile("${{ env.npcap_url }}", "${{ env.npcap_dir }}\npcap.zip")
@@ -159,6 +163,6 @@ jobs:
         (New-Object Net.WebClient).DownloadFile("${{ env.iup_x64_url }}", "${{ env.iup_x64_dir }}\iup_x64.zip")
         7z x ${{ env.iup_x64_dir }}\iup_x64.zip -y -o${{ env.iup_x64_dir }} iup.lib iupimglib.lib
     - name: Build x64
-      run: msbuild ${{ env.sln_dir }}\bsniffhub.sln /p:configuration=Release /p:platform=x64 /p:PlatformToolset=v141
+      run: msbuild ${{ env.sln_dir }}\bsniffhub.sln /p:configuration=Release /p:platform=x64
     - name: Build x86
       run: msbuild ${{ env.sln_dir }}\bsniffhub.sln /p:configuration=Release /p:platform=x86
