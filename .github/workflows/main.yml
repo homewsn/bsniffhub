@@ -66,7 +66,7 @@ jobs:
     runs-on: ubuntu-22.04
     env:
       # URLs
-      IUP_22_URL: https://master.dl.sourceforge.net/project/iup/3.32/Linux%20Libraries/iup-3.32_Linux68_64_lib.tar.gz?viasf=1
+      IUP_22_URL: https://master.dl.sourceforge.net/project/iup/3.32/Linux%20Libraries/iup-3.32_Linux515_64_lib.tar.gz?viasf=1
       # Compiler
       CC: gcc
     steps:
@@ -74,7 +74,6 @@ jobs:
     - name: Install Packages
       run: |
         sudo apt-get update
-        sudo apt-get upgrade -y
         sudo apt-get install -y libpcap-dev
     - name: Before Build
       run: |
