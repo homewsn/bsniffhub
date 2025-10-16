@@ -133,7 +133,7 @@ jobs:
     - name: Build
       run: make bsniffhub
   
-  Windows-2019-vc16:
+  Windows-2022-vc2017:
     runs-on: windows-2022
     env:
       # URLs
@@ -159,6 +159,6 @@ jobs:
         (New-Object Net.WebClient).DownloadFile("${{ env.iup_x64_url }}", "${{ env.iup_x64_dir }}\iup_x64.zip")
         7z x ${{ env.iup_x64_dir }}\iup_x64.zip -y -o${{ env.iup_x64_dir }} iup.lib iupimglib.lib
     - name: Build x64
-      run: msbuild ${{ env.sln_dir }}\bsniffhub.sln /p:configuration=Release /p:platform=x64
+      run: msbuild ${{ env.sln_dir }}\bsniffhub.sln /p:configuration=Release /p:platform=x64 /p:PlatformToolset=v141
     - name: Build x86
       run: msbuild ${{ env.sln_dir }}\bsniffhub.sln /p:configuration=Release /p:platform=x86
