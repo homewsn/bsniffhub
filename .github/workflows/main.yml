@@ -153,7 +153,7 @@ jobs:
     - name: Install VS 2017 Build Tools
       run: |
         curl -L -o vs_BuildTools.exe https://aka.ms/vs/15/release/vs_BuildTools.exe
-        ./vs_BuildTools.exe --add Microsoft.VisualStudio.Workload.MSBuildTools --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --quiet --wait --norestart --force
+        vs_BuildTools.exe --add Microsoft.VisualStudio.Workload.MSBuildTools --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --quiet --wait --norestart --force
     - name: Before Build
       run: |
         (New-Object Net.WebClient).DownloadFile("${{ env.npcap_url }}", "${{ env.npcap_dir }}\npcap.zip")
