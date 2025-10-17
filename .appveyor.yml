@@ -1,7 +1,7 @@
 version: 1.1.{build}
 image:
 - Visual Studio 2019
-- Visual Studio 2022
+- Previous Visual Studio 2022
 configuration:
 - Debug
 - Release
@@ -36,7 +36,7 @@ for:
   -
     matrix:
       only:
-        - image: Visual Studio 2022
+        - image: Previous Visual Studio 2022
     install:
     - cmd: >-
         mkdir c:\downloads\npcap
