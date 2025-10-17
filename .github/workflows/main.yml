@@ -16,10 +16,11 @@ on:
 jobs:
 
   Coverity-Scan-gcc:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       # URLs
-      IUP_BIONIC_URL: https://master.dl.sourceforge.net/project/iup/3.29/Linux%20Libraries/iup-3.29_Linux415_64_lib.tar.gz
+      IUP_22_URL: https://master.dl.sourceforge.net/project/iup/3.32/Linux%20Libraries/iup-3.32_Linux515_64_lib.tar.gz?viasf=1
+#      IUP_BIONIC_URL: https://master.dl.sourceforge.net/project/iup/3.29/Linux%20Libraries/iup-3.29_Linux415_64_lib.tar.gz
       COV_SCAN_URL: https://scan.coverity.com/download/cxx/linux64
       # Compiler
       CC: gcc
@@ -32,7 +33,8 @@ jobs:
     - name: Download and install IUP
       run: |
         mkdir /tmp/iup
-        wget $IUP_BIONIC_URL -O /tmp/iup/iup.tar.gz
+        #wget $IUP_BIONIC_URL -O /tmp/iup/iup.tar.gz
+        wget $IUP_22_URL -O /tmp/iup/iup.tar.gz
         tar -xvf /tmp/iup/iup.tar.gz
         printf '\n' | sudo ./install
         printf '\n' | sudo ./install_dev
