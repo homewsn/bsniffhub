@@ -1,7 +1,7 @@
-version: 1.0.{build}
+version: 1.1.{build}
 image:
+- Visual Studio 2022
 - Visual Studio 2019
-- Visual Studio 2017
 configuration:
 - Debug
 - Release
@@ -16,18 +16,6 @@ for:
   -
     matrix:
       only:
-        - image: Visual Studio 2017
-    install:
-    - cmd: >-
-        mkdir c:\downloads\npcap
-
-        appveyor DownloadFile https://nmap.org/npcap/dist/npcap-sdk-1.06.zip -FileName c:\downloads\npcap\npcap.zip
-
-        7z x c:\downloads\npcap\npcap.zip -y -oc:\projects\bsniffhub\msvs\lib\npcap\
-
-  -
-    matrix:
-      only:
         - image: Visual Studio 2019
     install:
     - cmd: >-
@@ -38,8 +26,29 @@ for:
         7z x c:\downloads\npcap\npcap.zip -y -oc:\projects\bsniffhub\msvs\lib\npcap\
 
         mkdir c:\downloads\iup
-    - ps: (New-Object Net.WebClient).DownloadFile("https://versaweb.dl.sourceforge.net/project/iup/3.30/Windows%20Libraries/Static/iup-3.30_Win32_vc16_lib.zip", "c:\downloads\iup\iup_x86.zip")
-    - ps: (New-Object Net.WebClient).DownloadFile("https://phoenixnap.dl.sourceforge.net/project/iup/3.30/Windows%20Libraries/Static/iup-3.30_Win64_vc16_lib.zip", "c:\downloads\iup\iup_x64.zip")
+    - ps: (New-Object Net.WebClient).DownloadFile("https://master.dl.sourceforge.net/project/iup/3.32/Windows%20Libraries/Static/iup-3.32_Win32_vc16_lib.zip?viasf=1", "c:\downloads\iup\iup_x86.zip")
+    - ps: (New-Object Net.WebClient).DownloadFile("https://master.dl.sourceforge.net/project/iup/3.32/Windows%20Libraries/Static/iup-3.32_Win64_vc16_lib.zip?viasf=1", "c:\downloads\iup\iup_x64.zip")
+    - cmd: >-
+        7z x c:\downloads\iup\iup_x86.zip -y -oc:\projects\bsniffhub\lib\iup\lib\Win32_vc15 iup.lib iupimglib.lib
+
+        7z x c:\downloads\iup\iup_x64.zip -y -oc:\projects\bsniffhub\lib\iup\lib\Win64_vc15 iup.lib iupimglib.lib
+
+  -
+    matrix:
+      only:
+        - image: Visual Studio 2022
+    install:
+    - choco install windows-sdk-10-version-2004-all --version=10.0.19041.0 -y
+    - cmd: >-
+        mkdir c:\downloads\npcap
+
+        appveyor DownloadFile https://nmap.org/npcap/dist/npcap-sdk-1.06.zip -FileName c:\downloads\npcap\npcap.zip
+
+        7z x c:\downloads\npcap\npcap.zip -y -oc:\projects\bsniffhub\msvs\lib\npcap\
+
+        mkdir c:\downloads\iup
+    - ps: (New-Object Net.WebClient).DownloadFile("https://master.dl.sourceforge.net/project/iup/3.32/Windows%20Libraries/Static/iup-3.32_Win32_vc17_lib.zip?viasf=1", "c:\downloads\iup\iup_x86.zip")
+    - ps: (New-Object Net.WebClient).DownloadFile("https://master.dl.sourceforge.net/project/iup/3.32/Windows%20Libraries/Static/iup-3.32_Win64_vc17_lib.zip?viasf=1", "c:\downloads\iup\iup_x64.zip")
     - cmd: >-
         7z x c:\downloads\iup\iup_x86.zip -y -oc:\projects\bsniffhub\lib\iup\lib\Win32_vc15 iup.lib iupimglib.lib
 

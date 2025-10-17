@@ -4,9 +4,10 @@ Before downloading any precompiled binaries, you should read [the Tecgraf Librar
 
 #### Downloading and installation (Linux)
 
-The tested Linux precompiled IUP binaries (v. 3.30) can be downloaded from [this page](https://sourceforge.net/projects/iup/files/3.32/Linux%20Libraries/). Download and untar the package you need. Here is a list of the tested packages:
-* iup-3.32_Linux415_64_lib.tar.gz: Ubuntu 18.04 Bionic (x64)
-* iup-3.32_Linux68_64_lib.tar.gz: Ubuntu 22.04 Jammy Jellyfish (x64)
+The tested Linux precompiled IUP binaries (v. 3.32) can be downloaded from [this page](https://sourceforge.net/projects/iup/files/3.32/Linux%20Libraries/). Download and untar the package you need. Here is a list of the tested packages:
+* iup-3.32_Linux415_64_lib.tar.gz: Ubuntu 18.04 Bionic Beaver (x64)
+* iup-3.32_Linux515_64_lib.tar.gz: Ubuntu 22.04 Jammy Jellyfish (x64)
+* iup-3.32_Linux68_64_lib.tar.gz: Ubuntu 24.04 Noble Numbat (x64)
 
 To install the `run time` libraries in the system from the unpacked download:
 ```

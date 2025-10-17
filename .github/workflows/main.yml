@@ -16,10 +16,10 @@ on:
 jobs:
 
   Coverity-Scan-gcc:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       # URLs
-      IUP_BIONIC_URL: https://master.dl.sourceforge.net/project/iup/3.29/Linux%20Libraries/iup-3.29_Linux415_64_lib.tar.gz
+      IUP_22_URL: https://master.dl.sourceforge.net/project/iup/3.32/Linux%20Libraries/iup-3.32_Linux515_64_lib.tar.gz?viasf=1
       COV_SCAN_URL: https://scan.coverity.com/download/cxx/linux64
       # Compiler
       CC: gcc
@@ -32,7 +32,8 @@ jobs:
     - name: Download and install IUP
       run: |
         mkdir /tmp/iup
-        wget $IUP_BIONIC_URL -O /tmp/iup/iup.tar.gz
+        #wget $IUP_BIONIC_URL -O /tmp/iup/iup.tar.gz
+        wget $IUP_22_URL -O /tmp/iup/iup.tar.gz
         tar -xvf /tmp/iup/iup.tar.gz
         printf '\n' | sudo ./install
         printf '\n' | sudo ./install_dev
@@ -62,11 +63,11 @@ jobs:
 #    - name: Build
 #      run: make
 
-  Ubuntu-Focal-gcc:
-    runs-on: ubuntu-20.04
+  Ubuntu-22-gcc:
+    runs-on: ubuntu-22.04
     env:
       # URLs
-      IUP_FOCAL_URL: https://deac-ams.dl.sourceforge.net/project/iup/3.30/Linux%20Libraries/iup-3.30_Linux54_64_lib.tar.gz
+      IUP_22_URL: https://master.dl.sourceforge.net/project/iup/3.32/Linux%20Libraries/iup-3.32_Linux515_64_lib.tar.gz?viasf=1
       # Compiler
       CC: gcc
     steps:
@@ -78,7 +79,30 @@ jobs:
     - name: Before Build
       run: |
         mkdir /tmp/iup
-        wget $IUP_FOCAL_URL -O /tmp/iup/iup.tar.gz
+        wget $IUP_22_URL -O /tmp/iup/iup.tar.gz
+        tar -xvf /tmp/iup/iup.tar.gz
+        printf '\n' | sudo ./install
+        printf '\n' | sudo ./install_dev
+    - name: Build
+      run: make
+
+  Ubuntu-24-gcc:
+    runs-on: ubuntu-24.04
+    env:
+      # URLs
+      IUP_24_URL: https://master.dl.sourceforge.net/project/iup/3.32/Linux%20Libraries/iup-3.32_Linux68_64_lib.tar.gz?viasf=1
+      # Compiler
+      CC: gcc
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install Packages
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libpcap-dev
+    - name: Before Build
+      run: |
+        mkdir /tmp/iup
+        wget $IUP_24_URL -O /tmp/iup/iup.tar.gz
         tar -xvf /tmp/iup/iup.tar.gz
         printf '\n' | sudo ./install
         printf '\n' | sudo ./install_dev
@@ -110,32 +134,29 @@ jobs:
     - name: Build
       run: make bsniffhub
   
-  Windows-2019-vc16:
-    runs-on: windows-2019
+  Windows-2022-vc2017:
+    runs-on: windows-2022
     env:
       # URLs
       npcap_url: https://nmap.org/npcap/dist/npcap-sdk-1.06.zip
-      iup_x86_url: https://versaweb.dl.sourceforge.net/project/iup/3.30/Windows%20Libraries/Static/iup-3.30_Win32_vc16_lib.zip
-      iup_x64_url: https://phoenixnap.dl.sourceforge.net/project/iup/3.30/Windows%20Libraries/Static/iup-3.30_Win64_vc16_lib.zip
       # Folders
       npcap_dir: ${{ github.workspace }}\msvs\lib\npcap
       sln_dir: ${{ github.workspace }}\msvs
-      # use existing folders, overwrite existing VC15 library files with new ones for VC16
-      iup_x86_dir: ${{ github.workspace }}\lib\iup\lib\Win32_vc15
-      iup_x64_dir: ${{ github.workspace }}\lib\iup\lib\Win64_vc15
     steps:
     - uses: actions/checkout@v4
     - name: Install Msbuild
       uses: microsoft/setup-msbuild@v2
+    - name: Download vs_buildtools.exe
+      run: Invoke-webrequest -uri  https://aka.ms/vs/15/release/vs_buildtools.exe -OutFile vs_buildtools.exe
+      shell: powershell
+    - name: Install VS 2017 Build Tools
+      run: .\vs_buildtools.exe --add Microsoft.VisualStudio.Workload.MSBuildTools --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --quiet --wait --norestart --force
+      shell: cmd
     - name: Before Build
       run: |
         (New-Object Net.WebClient).DownloadFile("${{ env.npcap_url }}", "${{ env.npcap_dir }}\npcap.zip")
         7z x ${{ env.npcap_dir }}\npcap.zip -y -o${{ env.npcap_dir }}
-        (New-Object Net.WebClient).DownloadFile("${{ env.iup_x86_url }}", "${{ env.iup_x86_dir }}\iup_x86.zip")
-        7z x ${{ env.iup_x86_dir }}\iup_x86.zip -y -o${{ env.iup_x86_dir }} iup.lib iupimglib.lib
-        (New-Object Net.WebClient).DownloadFile("${{ env.iup_x64_url }}", "${{ env.iup_x64_dir }}\iup_x64.zip")
-        7z x ${{ env.iup_x64_dir }}\iup_x64.zip -y -o${{ env.iup_x64_dir }} iup.lib iupimglib.lib
     - name: Build x64
-      run: msbuild ${{ env.sln_dir }}\bsniffhub.sln /p:configuration=Release /p:platform=x64
+      run: msbuild ${{ env.sln_dir }}\bsniffhub.sln /p:configuration=Release /p:platform=x64 /p:PlatformToolset=v141
     - name: Build x86
-      run: msbuild ${{ env.sln_dir }}\bsniffhub.sln /p:configuration=Release /p:platform=x86
+      run: msbuild ${{ env.sln_dir }}\bsniffhub.sln /p:configuration=Release /p:platform=x86 /p:PlatformToolset=v141
