@@ -46,6 +46,7 @@ for:
         7z x c:\downloads\npcap\npcap.zip -y -oc:\projects\bsniffhub\msvs\lib\npcap\
 
         mkdir c:\downloads\iup
+    - ps: .\install_winsdk_2004.ps1
     - ps: (New-Object Net.WebClient).DownloadFile("https://master.dl.sourceforge.net/project/iup/3.32/Windows%20Libraries/Static/iup-3.32_Win32_vc17_lib.zip?viasf=1", "c:\downloads\iup\iup_x86.zip")
     - ps: (New-Object Net.WebClient).DownloadFile("https://master.dl.sourceforge.net/project/iup/3.32/Windows%20Libraries/Static/iup-3.32_Win64_vc17_lib.zip?viasf=1", "c:\downloads\iup\iup_x64.zip")
     - cmd: >-
