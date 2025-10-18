@@ -56,14 +56,24 @@ static void thread_run(void *param)
 	for (;;)
 	{
 		assert(size < SERIAL_BUF_SIZE);
+		if (size == SERIAL_BUF_SIZE)
+		{
+			size = 0;
+		}
 		if (!abort)
 		{
 			res = serial_read(dev, &buf[size], SERIAL_BUF_SIZE - size);
 		}
 		if (res > 0 || size > 0)
 		{
-			size += (size_t)res;
-			assert(size <= SERIAL_BUF_SIZE);
+			if (size + (size_t)res > SERIAL_BUF_SIZE)
+			{
+				size = SERIAL_BUF_SIZE;
+			}
+			else
+			{
+				size += (size_t)res;
+			}
 			res = sniffer->decode(&buf[0], size, &info);
 			if (res > 0)
 			{
