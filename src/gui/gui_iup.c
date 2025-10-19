@@ -496,7 +496,7 @@ static int btn_start_action_cb(Ihandle* ih)
 	ts.opt_n = IupGetInt(tgl_nodec, "VALUE");
 	ts.opt_L = 0;
 
-	if (!strcmp(ts.opt_s_arg, "B"))
+	if (ts.opt_s && !strcmp(ts.opt_s_arg, "B"))
 	{
 		// Blesniff options
 		if (B_options.option_c)
@@ -525,7 +525,7 @@ static int btn_start_action_cb(Ihandle* ih)
 			ts.opt_L_arg = B_options.option_L_str;
 		}
 	}
-	if (!strcmp(ts.opt_s_arg, "S"))
+	if (ts.opt_s && !strcmp(ts.opt_s_arg, "S"))
 	{
 		// Sniffle options
 		if (S_options.option_c)
@@ -548,7 +548,7 @@ static int btn_start_action_cb(Ihandle* ih)
 			ts.opt_e = 1;
 		}
 	}
-	if (!strcmp(ts.opt_s_arg, "N4"))
+	if (ts.opt_s && !strcmp(ts.opt_s_arg, "N4"))
 	{
 		// nRF sniffer options
 		if (N_options.option_c)
