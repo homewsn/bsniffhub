@@ -375,7 +375,7 @@ static void follow_device(uint8_t *buf, size_t size)
 	}
 	else
 	{
-		serial_write(dev, cmd_reset_mac_filter, sizeof(cmd_set_mac_filter));
+		serial_write(dev, cmd_reset_mac_filter, sizeof(cmd_reset_mac_filter));
 		mac_filt = 0;
 	}
 }
