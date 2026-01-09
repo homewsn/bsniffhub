@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2020 - 2025 Vladimir Alemasov
+* Copyright (c) 2020 - 2026 Vladimir Alemasov
 * All rights reserved
 *
 * This program and the accompanying materials are distributed under
@@ -471,4 +471,4 @@ static void close_free(void)
 
 //--------------------------------------------
 SNIFFER(sniffer_ti2, "T", 3000000, 0, init, reset, serial_packet_decode, follow_device, NULL, NULL, NULL,\
-	    min_rssi_set, adv_channel_set, mac_addr_set, NULL, NULL, close_free);
+	NULL, min_rssi_set, adv_channel_set, mac_addr_set, NULL, NULL, close_free);

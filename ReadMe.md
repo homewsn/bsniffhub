@@ -1,6 +1,6 @@
 [![Release Status](https://img.shields.io/github/release/homewsn/bsniffhub.svg)](https://github.com/homewsn/bsniffhub/releases)
 [![Github CI Build Status](https://github.com/homewsn/bsniffhub/actions/workflows/main.yml/badge.svg)](https://github.com/homewsn/bsniffhub/actions?workflow%3Atest)
-[![Appveyor Build Status](https://ci.appveyor.com/api/projects/status/github/homewsn/bsniffhub?branch=master&svg=true)](https://ci.appveyor.com/project/homewsn/bsniffhub)
+[![Appveyor Build Status](https://img.shields.io/appveyor/build/homewsn/bsniffhub.svg)](https://ci.appveyor.com/project/homewsn/bsniffhub)
 [![Coverity Scan Build Status](https://scan.coverity.com/projects/22350/badge.svg?flat=1)](https://scan.coverity.com/projects/homewsn-bsniffhub)
 
 ### Bsniffhub
@@ -82,7 +82,7 @@ $ ./bsniffhub
 One of the options -s or -r is required.
 
 Usage:
-  bsniffhub -s <sniffer> -p <serport> [-b <baudrate>] [-c <channel(s)>] [-f <MODE>] [-R <RSSI>] [-m <MAC>] [-e] [-w <outfile>] [-l <link type>] [-n] [-L <LTK>] [-W <path to Wireshark>]
+  bsniffhub -s <sniffer> -p <serport> [-b <baudrate>] [-c <channel(s)>] [-f <MODE>] [-R <RSSI>] [-m <MAC>] [-i <IRK>] [-e] [-w <outfile>] [-l <link type>] [-n] [-L <LTK>] [-W <path to Wireshark>]
   bsniffhub -r <infile> [-w <outfile>] [-l <link type>] [-n] [-L <LTK>] [-W <path to Wireshark>]
 
 Mandatory arguments for sniffer device input:
@@ -101,6 +101,7 @@ Optional argument for sniffer device input:
                      (def: 37,38,39 for Blesniff and nRF Sniffer, 37 for others)
   -R <RSSI>          Filter sniffer packets by minimum RSSI
   -m <MAC>           Filter sniffer packets by advertiser MAC
+  -i <IRK>           Filter sniffer packets by advertiser IRK
   -e                 Sniffle follow connections on secondary advertising channels
   -f <MODE>          Blesniff follow mode:
                      'conn' - connection

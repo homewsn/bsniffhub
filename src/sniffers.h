@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2020 - 2025 Vladimir Alemasov
+* Copyright (c) 2020 - 2026 Vladimir Alemasov
 * All rights reserved
 *
 * This program and the accompanying materials are distributed under
@@ -30,6 +30,7 @@ typedef struct sniffer
 	void(*passkey_set)(uint8_t *buf, size_t size);
 	void(*oob_key_set)(uint8_t *buf, size_t size);
 	void(*ltk_set)(uint8_t *buf, size_t size, bool send);
+	void(*irk_set)(uint8_t *buf, size_t size);
 	void(*min_rssi_set)(int8_t rssi);
 	void(*adv_channel_set)(uint8_t *hop_map, uint8_t hop_map_size);
 	void(*mac_addr_set)(uint8_t *buf, uint8_t addr_type);
@@ -40,9 +41,9 @@ typedef struct sniffer
 
 //--------------------------------------------
 #define SNIFFER(name, id, baudrate, flow_control, init, reset, decode, follow_device, passkey_set, oob_key_set, ltk_set,\
-                min_rssi_set, adv_channel_set, mac_addr_set, follow_aux_connect, follow_filter_set, close) \
+                irk_set, min_rssi_set, adv_channel_set, mac_addr_set, follow_aux_connect, follow_filter_set, close) \
 	const sniffer_t name = { id, baudrate, flow_control, init, reset, decode, follow_device, passkey_set, oob_key_set, ltk_set,\
-                             min_rssi_set, adv_channel_set, mac_addr_set, follow_aux_connect, follow_filter_set, close }
+                             irk_set, min_rssi_set, adv_channel_set, mac_addr_set, follow_aux_connect, follow_filter_set, close }
 
 //--------------------------------------------
 #define SNIFFERS(...) \

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2024 - 2025 Vladimir Alemasov
+* Copyright (c) 2024 - 2026 Vladimir Alemasov
 * All rights reserved
 *
 * This program and the accompanying materials are distributed under
@@ -241,7 +241,7 @@ static int serial_packet_decode(uint8_t *buf, size_t len, ble_info_t **info)
 	}
 	length = buf[2];
 	pkt_length = length + 3;
-	if (len < pkt_length)
+	if (len < (size_t)pkt_length)
 	{
 		return 0;
 	}
@@ -302,4 +302,4 @@ static void close_free(void)
 
 //--------------------------------------------
 SNIFFER(sniffer_stm32wb, "WB", 921600, 0, init, reset, serial_packet_decode, follow_device, NULL, NULL, NULL,\
-	    min_rssi_set, adv_channel_set, mac_addr_set, NULL, NULL, close_free);
+	NULL, min_rssi_set, adv_channel_set, mac_addr_set, NULL, NULL, close_free);

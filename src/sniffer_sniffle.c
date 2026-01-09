@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2020 - 2025 Vladimir Alemasov
+* Copyright (c) 2020 - 2026 Vladimir Alemasov
 * All rights reserved
 *
 * This program and the accompanying materials are distributed under
@@ -15,6 +15,7 @@
 #include <stdint.h>     /* uint8_t ... uint64_t */
 #include <assert.h>     /* assert */
 #include <stdlib.h>     /* malloc */
+#include <stdio.h>      /* sscanf */
 #include <stdbool.h>    /* bool */
 #include <string.h>     /* memset */
 #include "msg_pckt_ble.h"
@@ -52,6 +53,7 @@
 #define COMMAND_AUXADV          0x16
 #define COMMAND_RESET           0x17
 #define COMMAND_MARKER          0x18
+#define COMMAND_IRK             0x1e
 
 //--------------------------------------------
 #define MESSAGE_BLEFRAME        0x10
@@ -70,6 +72,8 @@ static uint8_t aux_adv;
 static uint8_t adv_channel = 37;
 static uint8_t mac_addr[DEVICE_ADDRESS_LENGTH];
 static uint8_t mac_filt;
+static uint8_t irk_filt;
+static uint8_t irk[16];
 
 //--------------------------------------------
 static int command_send(uint8_t *buf, size_t size)
@@ -152,6 +156,27 @@ static int command_mac_filt_send(uint8_t *dev_addr)
 
 	buf[1] = COMMAND_MACFILT;
 	memcpy(&buf[2], dev_addr, DEVICE_ADDRESS_LENGTH);
+	return command_send(buf, sizeof(buf));
+}
+
+//--------------------------------------------
+// Reset irk filter
+static int command_irk_filt_reset_send(void)
+{
+	uint8_t buf[2];
+
+	buf[1] = COMMAND_IRK;
+	return command_send(buf, sizeof(buf));
+}
+
+//--------------------------------------------
+// Filter packets by advertiser irk
+static int command_irk_filt_send(uint8_t *irk)
+{
+	uint8_t buf[18];
+
+	buf[1] = COMMAND_IRK;
+	memcpy(&buf[2], irk, 16);
 	return command_send(buf, sizeof(buf));
 }
 
@@ -442,6 +467,14 @@ static void init(HANDLE hndl)
 	{
 		command_mac_filt_reset_send();
 	}
+	if (irk_filt)
+	{
+		command_irk_filt_send(irk);
+	}
+	else
+	{
+		command_irk_filt_reset_send();
+	}
 	command_aux_adv_send(aux_adv);
 	command_mark_and_flash_send();
 }
@@ -452,6 +485,7 @@ static void reset(void)
 	min_rssi = -128;
 	adv_channel = 37;
 	mac_filt = 0;
+	irk_filt = 0;
 	aux_adv = 0;
 }
 
@@ -504,6 +538,7 @@ static void follow_device(uint8_t *buf, size_t size)
 		command_follow_send(1);
 		memcpy_reverse(adv_addr, buf, DEVICE_ADDRESS_LENGTH);
 		command_mac_filt_send(adv_addr);
+		command_irk_filt_reset_send();
 		command_adv_hop_send();
 		command_aux_adv_send(aux_adv);
 		command_mark_and_flash_send();
@@ -515,6 +550,10 @@ static void follow_device(uint8_t *buf, size_t size)
 		command_pause_done_send(0);
 		command_follow_send(1);
 		command_mac_filt_reset_send();
+		if (irk_filt)
+		{
+			command_irk_filt_send(irk);
+		}
 		command_aux_adv_send(aux_adv);
 		command_mark_and_flash_send();
 	}
@@ -540,6 +579,20 @@ static void mac_addr_set(uint8_t *buf, uint8_t addr_type)
 }
 
 //--------------------------------------------
+static void irk_set(uint8_t *buf, size_t size)
+{
+	size_t cnt;
+
+	assert(size == 32);
+
+	for (cnt = 0; cnt < size / 2; cnt++, buf += 2)
+	{
+		sscanf(buf, "%2hhx", &irk[cnt]);
+	}
+	irk_filt = 1;
+}
+
+//--------------------------------------------
 static void follow_aux_connect(uint8_t follow)
 {
 	aux_adv = follow;
@@ -553,4 +606,4 @@ static void close_free(void)
 
 //--------------------------------------------
 SNIFFER(sniffer_sniffle, "S", 2000000, 0, init, reset, serial_packet_decode, follow_device, NULL, NULL, NULL,\
-	    min_rssi_set, adv_channel_set, mac_addr_set, follow_aux_connect, NULL, close_free);
+	irk_set, min_rssi_set, adv_channel_set, mac_addr_set, follow_aux_connect, NULL, close_free);

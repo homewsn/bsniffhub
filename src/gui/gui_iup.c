@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2020 - 2025 Vladimir Alemasov
+* Copyright (c) 2020 - 2026 Vladimir Alemasov
 * All rights reserved
 *
 * This program and the accompanying materials are distributed under
@@ -91,6 +91,9 @@ static Ihandle *tgl_nodec;
 #define B_OPTION_M_MAX_LEN       18  // 12:34:56:78:9A:BCr
 #define B_OPTION_M_MAX_LEN_STR   STRINGIFY_EXPANDED(B_OPTION_M_MAX_LEN)
 #define B_OPTION_M_TEXT_MASK     "[0-9a-fA-F][0-9a-fA-F]:[0-9a-fA-F][0-9a-fA-F]:[0-9a-fA-F][0-9a-fA-F]:[0-9a-fA-F][0-9a-fA-F]:[0-9a-fA-F][0-9a-fA-F]:[0-9a-fA-F][0-9a-fA-F][r]"
+#define B_OPTION_I_MAX_LEN       32  // 00112233445566778899aabbccddeeff
+#define B_OPTION_I_MAX_LEN_STR   STRINGIFY_EXPANDED(B_OPTION_L_MAX_LEN)
+#define B_OPTION_I_TEXT_MASK     "[0-9a-fA-F]+"
 #define B_OPTION_F_MAX_LEN       15  // conn,pa,cis,bis
 #define B_OPTION_F_MAX_LEN_STR   STRINGIFY_EXPANDED(B_OPTION_F_MAX_LEN)
 #define B_OPTION_F_TEXT_MASK     "(conn|pa|cis|bis)[,](conn|pa|cis|bis)[,](conn|pa|cis|bis)[,](conn|pa|cis|bis)"
@@ -109,6 +112,9 @@ static Ihandle *tgl_nodec;
 #define S_OPTION_M_MAX_LEN       B_OPTION_M_MAX_LEN
 #define S_OPTION_M_MAX_LEN_STR   B_OPTION_M_MAX_LEN_STR
 #define S_OPTION_M_TEXT_MASK     B_OPTION_M_TEXT_MASK
+#define S_OPTION_I_MAX_LEN       32  // 00112233445566778899aabbccddeeff
+#define S_OPTION_I_MAX_LEN_STR   STRINGIFY_EXPANDED(B_OPTION_L_MAX_LEN)
+#define S_OPTION_I_TEXT_MASK     "[0-9a-fA-F]+"
 #define S_OPTION_DIALOG_MINSIZE  "400x"
 //--------------------------------------------
 // nRF sniffer
@@ -128,9 +134,9 @@ static Ihandle *tgl_nodec;
 
 //--------------------------------------------
 // Additional options dialog's variables
-static Ihandle *lbl_option_c, *lbl_option_R, *lbl_option_m, *lbl_option_f, *lbl_option_L;
-static Ihandle *txt_option_c, *txt_option_R, *txt_option_m, *txt_option_f, *txt_option_L;
-static Ihandle *tgl_option_c_en, *tgl_option_R_en, *tgl_option_m_en, *tgl_option_f_en, *tgl_option_L_en, *tgl_option_e_en;
+static Ihandle *lbl_option_c, *lbl_option_R, *lbl_option_m, *lbl_option_i, *lbl_option_f, *lbl_option_L;
+static Ihandle *txt_option_c, *txt_option_R, *txt_option_m, *txt_option_i, *txt_option_f, *txt_option_L;
+static Ihandle *tgl_option_c_en, *tgl_option_R_en, *tgl_option_m_en, *tgl_option_i_en, *tgl_option_f_en, *tgl_option_L_en, *tgl_option_e_en;
 
 //--------------------------------------------
 // Blesniff
@@ -147,6 +153,8 @@ typedef struct
 	char option_m_str[B_OPTION_M_MAX_LEN + 1];
 	uint8_t mac[6];
 	uint8_t mac_addr_type;
+	bool option_i;
+	char option_i_str[B_OPTION_I_MAX_LEN + 1];
 	bool option_f;
 	char option_f_str[B_OPTION_F_MAX_LEN + 1];
 	uint8_t filter;
@@ -170,6 +178,8 @@ typedef struct
 	char option_m_str[S_OPTION_M_MAX_LEN + 1];
 	uint8_t mac[6];
 	uint8_t mac_addr_type;
+	bool option_i;
+	char option_i_str[S_OPTION_I_MAX_LEN + 1];
 	bool option_e;
 } S_options_t;
 static S_options_t S_options;
@@ -514,6 +524,11 @@ static int btn_start_action_cb(Ihandle* ih)
 			ts.opt_m = 1;
 			ts.opt_m_arg = B_options.option_m_str;
 		}
+		if (B_options.option_i)
+		{
+			ts.opt_i = 1;
+			ts.opt_i_arg = B_options.option_i_str;
+		}
 		if (B_options.option_f)
 		{
 			ts.opt_f = 1;
@@ -542,6 +557,11 @@ static int btn_start_action_cb(Ihandle* ih)
 		{
 			ts.opt_m = 1;
 			ts.opt_m_arg = S_options.option_m_str;
+		}
+		if (S_options.option_i)
+		{
+			ts.opt_i = 1;
+			ts.opt_i_arg = S_options.option_i_str;
 		}
 		if (S_options.option_e)
 		{
@@ -646,6 +666,8 @@ static int btn_stop_action_cb(Ihandle* ih)
 	IupSetAttribute(hbox_bledev, "ACTIVE", "NO");
 	if (!in_pcap_option)
 	{
+		list_iface_load();
+		lst_load(lst_iface, &list_iface, 1);
 		IupSetAttribute(hbox_in_capdev, "ACTIVE", "YES");
 		char *name = list_lstbox_find_devname_by_id(&list_sniff, IupGetInt(lst_sniff, "VALUE"));
 		if (!strcmp(name, "B") || !strcmp(name, "S") || !strcmp(name, "N4"))
@@ -866,7 +888,7 @@ static int btn_about_action_cb(Ihandle* ih)
 	IupSetAttribute(sep, "EXPAND", "HORIZONTAL");
 	IupSetAttribute(sep, "STYLE", "LINE");
 	IupSetAttribute(sep, "BARSIZE", "16");
-	Ihandle *lbl_2 = IupLabel("Copyright (c) 2020-2025 Vladimir Alemasov");
+	Ihandle *lbl_2 = IupLabel("Copyright (c) 2020-2026 Vladimir Alemasov");
 	Ihandle *lbl_3 = IupLabel("TinyCrypt - Copyright (c) 2017, Intel Corporation");
 	Ihandle *lbl_4 = IupLabel("IUP - Copyright (c) 1994-2025 Tecgraf/PUC-Rio");
 	Ihandle *lbl_5 = IupLabel("Icon - Copyright (c) Hopstarter (Jojo Mendoza)");
@@ -939,6 +961,21 @@ static int dlg_B_options_btn_ok_action_cb(Ihandle* ih)
 		}
 		strncpy(B_options_dlg.option_m_str, value_str, B_OPTION_M_MAX_LEN);
 	}
+	if (B_options_dlg.option_i)
+	{
+		value_str = IupGetAttribute(txt_option_i, "VALUE");
+		if (!strlen(value_str))
+		{
+			IupMessage("Error: -i option", "Argument required!");
+			return IUP_DEFAULT;
+		}
+		if (task_check_irk(value_str))
+		{
+			IupMessage("Error: -i option", "Wrong IRK!");
+			return IUP_DEFAULT;
+		}
+		strncpy(B_options_dlg.option_i_str, value_str, B_OPTION_I_MAX_LEN);
+	}
 	if (B_options_dlg.option_f)
 	{
 		value_str = IupGetAttribute(txt_option_f, "VALUE");
@@ -979,6 +1016,7 @@ static void dlg_B_options_set_en_value(void)
 	IupSetInt(tgl_option_c_en, "VALUE", B_options_dlg.option_c);
 	IupSetInt(tgl_option_R_en, "VALUE", B_options_dlg.option_R);
 	IupSetInt(tgl_option_m_en, "VALUE", B_options_dlg.option_m);
+	IupSetInt(tgl_option_i_en, "VALUE", B_options_dlg.option_i);
 	IupSetInt(tgl_option_f_en, "VALUE", B_options_dlg.option_f);
 	IupSetInt(tgl_option_L_en, "VALUE", B_options_dlg.option_L);
 }
@@ -1010,11 +1048,25 @@ static void dlg_B_options_set_active(void)
 	{
 		IupSetAttribute(lbl_option_m, "ACTIVE", "YES");
 		IupSetAttribute(txt_option_m, "ACTIVE", "YES");
+		IupSetAttribute(tgl_option_i_en, "ACTIVE", "NO");
 	}
 	else
 	{
 		IupSetAttribute(lbl_option_m, "ACTIVE", "NO");
 		IupSetAttribute(txt_option_m, "ACTIVE", "NO");
+		IupSetAttribute(tgl_option_i_en, "ACTIVE", "YES");
+	}
+	if (B_options_dlg.option_i)
+	{
+		IupSetAttribute(lbl_option_i, "ACTIVE", "YES");
+		IupSetAttribute(txt_option_i, "ACTIVE", "YES");
+		IupSetAttribute(tgl_option_m_en, "ACTIVE", "NO");
+	}
+	else
+	{
+		IupSetAttribute(lbl_option_i, "ACTIVE", "NO");
+		IupSetAttribute(txt_option_i, "ACTIVE", "NO");
+		IupSetAttribute(tgl_option_m_en, "ACTIVE", "YES");
 	}
 	if (B_options_dlg.option_f)
 	{
@@ -1058,6 +1110,14 @@ static int tgl_B_option_R_en_action_cb(Ihandle *ih, int v)
 static int tgl_B_option_m_en_action_cb(Ihandle *ih, int v)
 {
 	B_options_dlg.option_m = v;
+	dlg_B_options_set_active();
+	return IUP_DEFAULT;
+}
+
+//--------------------------------------------
+static int tgl_B_option_i_en_action_cb(Ihandle *ih, int v)
+{
+	B_options_dlg.option_i = v;
 	dlg_B_options_set_active();
 	return IUP_DEFAULT;
 }
@@ -1130,6 +1190,21 @@ static int dlg_S_options_btn_ok_action_cb(Ihandle* ih)
 		}
 		strncpy(S_options_dlg.option_m_str, value_str, S_OPTION_M_MAX_LEN);
 	}
+	if (S_options_dlg.option_i)
+	{
+		value_str = IupGetAttribute(txt_option_i, "VALUE");
+		if (!strlen(value_str))
+		{
+			IupMessage("Error: -i option", "Argument required!");
+			return IUP_DEFAULT;
+		}
+		if (task_check_irk(value_str))
+		{
+			IupMessage("Error: -i option", "Wrong IRK!");
+			return IUP_DEFAULT;
+		}
+		strncpy(S_options_dlg.option_i_str, value_str, S_OPTION_I_MAX_LEN);
+	}
 	S_options = S_options_dlg;
 	return IUP_CLOSE;
 }
@@ -1140,6 +1215,7 @@ static void dlg_S_options_set_en_value(void)
 	IupSetInt(tgl_option_c_en, "VALUE", S_options_dlg.option_c);
 	IupSetInt(tgl_option_R_en, "VALUE", S_options_dlg.option_R);
 	IupSetInt(tgl_option_m_en, "VALUE", S_options_dlg.option_m);
+	IupSetInt(tgl_option_i_en, "VALUE", S_options_dlg.option_i);
 	IupSetInt(tgl_option_e_en, "VALUE", S_options_dlg.option_e);
 }
 
@@ -1170,11 +1246,25 @@ static void dlg_S_options_set_active(void)
 	{
 		IupSetAttribute(lbl_option_m, "ACTIVE", "YES");
 		IupSetAttribute(txt_option_m, "ACTIVE", "YES");
+		IupSetAttribute(tgl_option_i_en, "ACTIVE", "NO");
 	}
 	else
 	{
 		IupSetAttribute(lbl_option_m, "ACTIVE", "NO");
 		IupSetAttribute(txt_option_m, "ACTIVE", "NO");
+		IupSetAttribute(tgl_option_i_en, "ACTIVE", "YES");
+	}
+	if (S_options_dlg.option_i)
+	{
+		IupSetAttribute(lbl_option_i, "ACTIVE", "YES");
+		IupSetAttribute(txt_option_i, "ACTIVE", "YES");
+		IupSetAttribute(tgl_option_m_en, "ACTIVE", "NO");
+	}
+	else
+	{
+		IupSetAttribute(lbl_option_i, "ACTIVE", "NO");
+		IupSetAttribute(txt_option_i, "ACTIVE", "NO");
+		IupSetAttribute(tgl_option_m_en, "ACTIVE", "YES");
 	}
 }
 
@@ -1198,6 +1288,14 @@ static int tgl_S_option_R_en_action_cb(Ihandle *ih, int v)
 static int tgl_S_option_m_en_action_cb(Ihandle *ih, int v)
 {
 	S_options_dlg.option_m = v;
+	dlg_S_options_set_active();
+	return IUP_DEFAULT;
+}
+
+//--------------------------------------------
+static int tgl_S_option_i_en_action_cb(Ihandle *ih, int v)
+{
+	S_options_dlg.option_i = v;
 	dlg_S_options_set_active();
 	return IUP_DEFAULT;
 }
@@ -1442,6 +1540,25 @@ static int btn_options_action_cb(Ihandle* ih)
 		Ihandle *frm_option_m = IupFrame(vbox_option_m);
 		IupSetAttribute(frm_option_m, "TITLE", "Filter packets on primary advertising channels by MAC address");
 
+		// option_i
+		tgl_option_i_en = IupToggle("Enable -i option", NULL);
+		Ihandle *hbox_tgl_option_i_en = IupHbox(tgl_option_i_en, NULL);
+		IupSetAttribute(hbox_tgl_option_i_en, "NCMARGIN", "3x1");
+		lbl_option_i = IupLabel("Enter IRK:");
+		Ihandle *hbox_lbl_option_i = IupHbox(lbl_option_i, NULL);
+		IupSetAttribute(hbox_lbl_option_i, "NCMARGIN", "3x");
+		txt_option_i = IupText(NULL);
+		IupSetAttribute(txt_option_i, "EXPAND", "HORIZONTAL");
+		IupSetAttribute(txt_option_i, "VALUE", B_options.option_i_str);
+		IupSetAttribute(txt_option_i, "NC", S_OPTION_I_MAX_LEN_STR);
+		IupSetAttribute(txt_option_i, "MASK", S_OPTION_I_TEXT_MASK);
+		Ihandle *hbox_txt_option_i = IupHbox(txt_option_i, NULL);
+		IupSetAttribute(hbox_txt_option_i, "NCMARGIN", "3x");
+		Ihandle *vbox_option_i = IupVbox(hbox_tgl_option_i_en, hbox_lbl_option_i, hbox_txt_option_i, NULL);
+		IupSetAttribute(vbox_option_i, "NCMARGIN", "3x4");
+		Ihandle *frm_option_i = IupFrame(vbox_option_i);
+		IupSetAttribute(frm_option_i, "TITLE", "Filter advertising packets by IRK");
+
 		// option_f
 		tgl_option_f_en = IupToggle("Enable -f option", NULL);
 		Ihandle *hbox_tgl_option_f_en = IupHbox(tgl_option_f_en, NULL);
@@ -1480,7 +1597,7 @@ static int btn_options_action_cb(Ihandle* ih)
 		Ihandle *frm_option_L = IupFrame(vbox_option_L);
 		IupSetAttribute(frm_option_L, "TITLE", "LTK key for decrypting packets");
 
-		Ihandle *vbox_c = IupVbox(frm_option_c, frm_option_R, frm_option_m, frm_option_f, frm_option_L, NULL);
+		Ihandle *vbox_c = IupVbox(frm_option_c, frm_option_R, frm_option_m, frm_option_i, frm_option_f, frm_option_L, NULL);
 		IupSetAttribute(vbox_c, "EXPAND", "HORIZONTAL");
 		Ihandle *hbox_c = IupHbox(vbox_c, NULL);
 
@@ -1497,6 +1614,7 @@ static int btn_options_action_cb(Ihandle* ih)
 		IupSetCallback(tgl_option_c_en, "ACTION", (Icallback)tgl_B_option_c_en_action_cb);
 		IupSetCallback(tgl_option_R_en, "ACTION", (Icallback)tgl_B_option_R_en_action_cb);
 		IupSetCallback(tgl_option_m_en, "ACTION", (Icallback)tgl_B_option_m_en_action_cb);
+		IupSetCallback(tgl_option_i_en, "ACTION", (Icallback)tgl_B_option_i_en_action_cb);
 		IupSetCallback(tgl_option_f_en, "ACTION", (Icallback)tgl_B_option_f_en_action_cb);
 		IupSetCallback(tgl_option_L_en, "ACTION", (Icallback)tgl_B_option_L_en_action_cb);
 
@@ -1579,6 +1697,25 @@ static int btn_options_action_cb(Ihandle* ih)
 		Ihandle *frm_option_m = IupFrame(vbox_option_m);
 		IupSetAttribute(frm_option_m, "TITLE", "Filter advertising packets by MAC address");
 
+		// option_i
+		tgl_option_i_en = IupToggle("Enable -i option", NULL);
+		Ihandle *hbox_tgl_option_i_en = IupHbox(tgl_option_i_en, NULL);
+		IupSetAttribute(hbox_tgl_option_i_en, "NCMARGIN", "3x1");
+		lbl_option_i = IupLabel("Enter IRK:");
+		Ihandle *hbox_lbl_option_i = IupHbox(lbl_option_i, NULL);
+		IupSetAttribute(hbox_lbl_option_i, "NCMARGIN", "3x");
+		txt_option_i = IupText(NULL);
+		IupSetAttribute(txt_option_i, "EXPAND", "HORIZONTAL");
+		IupSetAttribute(txt_option_i, "VALUE", S_options.option_i_str);
+		IupSetAttribute(txt_option_i, "NC", S_OPTION_I_MAX_LEN_STR);
+		IupSetAttribute(txt_option_i, "MASK", S_OPTION_I_TEXT_MASK);
+		Ihandle *hbox_txt_option_i = IupHbox(txt_option_i, NULL);
+		IupSetAttribute(hbox_txt_option_i, "NCMARGIN", "3x");
+		Ihandle *vbox_option_i = IupVbox(hbox_tgl_option_i_en, hbox_lbl_option_i, hbox_txt_option_i, NULL);
+		IupSetAttribute(vbox_option_i, "NCMARGIN", "3x4");
+		Ihandle *frm_option_i = IupFrame(vbox_option_i);
+		IupSetAttribute(frm_option_i, "TITLE", "Filter advertising packets by IRK");
+
 		// option_e
 		tgl_option_e_en = IupToggle("Enable -e option", NULL);
 		Ihandle *hbox_tgl_option_e_en = IupHbox(tgl_option_e_en, NULL);
@@ -1589,7 +1726,7 @@ static int btn_options_action_cb(Ihandle* ih)
 		IupSetAttribute(frm_option_e, "TITLE", "Follow connections on secondary advertising channels");
 		IupSetAttribute(frm_option_e, "MINSIZE", S_OPTION_DIALOG_MINSIZE);
 
-		Ihandle *vbox_c = IupVbox(frm_option_c, frm_option_R, frm_option_m, frm_option_e, NULL);
+		Ihandle *vbox_c = IupVbox(frm_option_c, frm_option_R, frm_option_m, frm_option_i, frm_option_e, NULL);
 		IupSetAttribute(vbox_c, "EXPAND", "HORIZONTAL");
 		Ihandle *hbox_c = IupHbox(vbox_c, NULL);
 
@@ -1606,6 +1743,7 @@ static int btn_options_action_cb(Ihandle* ih)
 		IupSetCallback(tgl_option_c_en, "ACTION", (Icallback)tgl_S_option_c_en_action_cb);
 		IupSetCallback(tgl_option_R_en, "ACTION", (Icallback)tgl_S_option_R_en_action_cb);
 		IupSetCallback(tgl_option_m_en, "ACTION", (Icallback)tgl_S_option_m_en_action_cb);
+		IupSetCallback(tgl_option_i_en, "ACTION", (Icallback)tgl_S_option_i_en_action_cb);
 		IupSetCallback(tgl_option_e_en, "ACTION", (Icallback)tgl_S_option_e_en_action_cb);
 
 		// activity
@@ -1626,7 +1764,7 @@ static int btn_options_action_cb(Ihandle* ih)
 	}
 	if (!strcmp(name, "N4"))
 	{
-		// Blesniffer
+		// nRF sniffer 4
 		// copy dialog settings
 		N_options_dlg = N_options;
 

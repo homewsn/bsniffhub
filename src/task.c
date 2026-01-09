@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2020 - 2025 Vladimir Alemasov
+* Copyright (c) 2020 - 2026 Vladimir Alemasov
 * All rights reserved
 *
 * This program and the accompanying materials are distributed under
@@ -71,6 +71,7 @@ void print_usage(void)
 	printf("                     (def: 37,38,39 for Blesniff and nRF Sniffer, 37 for others)\n");
 	printf("  -R <RSSI>          Filter sniffer packets by minimum RSSI\n");
 	printf("  -m <MAC>           Filter sniffer packets by advertiser MAC\n");
+	printf("  -i <IRK>           Filter sniffer packets by advertiser IRK\n");
 	printf("  -e                 Sniffle follow connections on secondary advertising channels\n");
 	printf("  -f <MODE>          Blesniff follow mode:\n");
 	printf("                     'conn' - connection\n");
@@ -373,6 +374,27 @@ int task_check_ltk(char *arg)
 }
 
 //--------------------------------------------
+int task_check_irk(char *arg)
+{
+	if (strlen(arg) != 32)
+	{
+		printf("The IRK length must be 32 hexadecimal characters.\n\n");
+		print_usage();
+		return TASK_ERROR_USAGE;
+	}
+	for (size_t cnt = 0; cnt < 32; cnt++)
+	{
+		if (!(ishexchar(arg[cnt])) && !(isdigit(arg[cnt])))
+		{
+			printf("IRK must consist of hexadecimal characters only.\n\n");
+			print_usage();
+			return TASK_ERROR_USAGE;
+		}
+	}
+	return 0;
+}
+
+//--------------------------------------------
 int task_start(task_settings_t *ts, int gui)
 {
 	int dlt = 0;
@@ -394,6 +416,13 @@ int task_start(task_settings_t *ts, int gui)
 	if (ts->opt_L)
 	{
 		if (task_check_ltk(ts->opt_L_arg))
+		{
+			return TASK_ERROR_USAGE;
+		}
+	}
+	if (ts->opt_i)
+	{
+		if (task_check_irk(ts->opt_i_arg))
 		{
 			return TASK_ERROR_USAGE;
 		}
@@ -497,6 +526,12 @@ int task_start(task_settings_t *ts, int gui)
 				printf("Warning: The -f option is not supported by the current sniffer device and will be ignored.\n");
 			}
 		}
+		if (ts->opt_m && ts->opt_i)
+		{
+			printf("The -m and -i options are mutually exclusive.\n\n");
+			print_usage();
+			return TASK_ERROR_USAGE;
+		}
 		if (ts->opt_m)
 		{
 			uint8_t mac[6];
@@ -512,6 +547,17 @@ int task_start(task_settings_t *ts, int gui)
 			else
 			{
 				printf("Warning: The -m option is not supported by the current sniffer device and will be ignored.\n");
+			}
+		}
+		if (ts->opt_i)
+		{
+			if (sniffer->irk_set)
+			{
+				sniffer->irk_set(ts->opt_i_arg, 32);
+			}
+			else
+			{
+				printf("Warning: The -i option is not supported by the current sniffer device and will be ignored.\n");
 			}
 		}
 		if ((res = thread_sniff_init(ts->opt_p_arg, sniffer, baudr)) < 0)

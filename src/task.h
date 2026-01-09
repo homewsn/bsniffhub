@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2020 - 2025 Vladimir Alemasov
+* Copyright (c) 2020 - 2026 Vladimir Alemasov
 * All rights reserved
 *
 * This program and the accompanying materials are distributed under
@@ -31,6 +31,7 @@ typedef struct task_settings
 	int opt_e;
 	int opt_c;
 	int opt_m;
+	int opt_i;
 	int opt_f;
 	char *opt_s_arg;
 	char *opt_p_arg;
@@ -43,6 +44,7 @@ typedef struct task_settings
 	char *opt_R_arg;
 	char *opt_c_arg;
 	char *opt_m_arg;
+	char *opt_i_arg;
 	char *opt_f_arg;
 } task_settings_t;
 
@@ -66,5 +68,6 @@ int task_parse_channels(char *arg, uint8_t *hop_map, uint8_t *hop_map_size);
 int task_parse_rssi(char *arg, int *rssi);
 int task_parse_mac_address(char *arg, uint8_t *mac, uint8_t *mac_addr_type);
 int task_check_ltk(char *arg);
+int task_check_irk(char *arg);
 
 #endif /* TASK_H_ */

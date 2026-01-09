@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2025 Vladimir Alemasov
+* Copyright (c) 2025 - 2026 Vladimir Alemasov
 * All rights reserved
 *
 * This program and the accompanying materials are distributed under
@@ -29,11 +29,11 @@
 //--------------------------------------------
 // Homewsn BLE sniffer
 // Homewsn BLE sniffer is a sniffer for Bluetooth LE using nRF5340 hardware
-// Homewsn BLE sniffer v1.0 firmware
+// Homewsn BLE sniffer v1.1 firmware
 //--------------------------------------------
 // Layout of the messages:
 //  0   |  1   |      2      |   3   |   4   | ...  | n + 4 |
-// 0x40 | 0x53 |             |       n       |              |
+// 0x55 | 0xAA |             |       n       |              |
 //     SOF     | Packet Type | Packet Length | Packet Data  |
 //--------------------------------------------
 // Layout of the BLE packet:
@@ -46,7 +46,8 @@
 #define TS_WRAP_PERIOD          (0x100000000)
 #define MSG_HEADER_SIZE         5
 #define MIN_MSG_SIZE            MSG_HEADER_SIZE
-#define MAX_MSG_SIZE            SERIAL_BUF_SIZE
+#define MAX_PDU_SIZE            275
+#define MAX_MSG_SIZE            (MAX_PDU_SIZE + 25)
 //--------------------------------------------
 #define SYNC_BYTE0              0x55
 #define SYNC_BYTE1              0xAA
@@ -62,6 +63,8 @@
 #define CMD_RESET_MAC_FILTER    0x09
 #define CMD_SET_RSSI_FILTER     0x0A
 #define CMD_RESET_RSSI_FILTER   0x0B
+#define CMD_SET_IRK_FILTER      0x0C
+#define CMD_RESET_IRK_FILTER    0x0D
 //--------------------------------------------
 #define MSG_BLE_PACKET          0x80
 #define MSG_INFO                0x81
@@ -78,6 +81,8 @@
 #define CMD_ARRAY_RESET_MAC_FILTER    { SYNC_BYTE0, SYNC_BYTE1, CMD_RESET_MAC_FILTER, 0x00, 0x00 }
 #define CMD_ARRAY_SET_RSSI_FILTER     { SYNC_BYTE0, SYNC_BYTE1, CMD_SET_RSSI_FILTER, 0x01, 0x00, 0x00 }
 #define CMD_ARRAY_RESET_RSSI_FILTER   { SYNC_BYTE0, SYNC_BYTE1, CMD_RESET_RSSI_FILTER, 0x00, 0x00 }
+#define CMD_ARRAY_SET_IRK_FILTER      { SYNC_BYTE0, SYNC_BYTE1, CMD_SET_IRK_FILTER, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }
+#define CMD_ARRAY_RESET_IRK_FILTER    { SYNC_BYTE0, SYNC_BYTE1, CMD_RESET_IRK_FILTER, 0x00, 0x00 }
 
 //--------------------------------------------
 static const uint8_t cmd_reset[] = CMD_ARRAY_RESET;
@@ -91,6 +96,8 @@ static uint8_t cmd_set_mac_filter[] = CMD_ARRAY_SET_MAC_FILTER;
 static const uint8_t cmd_reset_mac_filter[] = CMD_ARRAY_RESET_MAC_FILTER;
 static uint8_t cmd_set_rssi_filter[] = CMD_ARRAY_SET_RSSI_FILTER;
 static const uint8_t cmd_reset_rssi_filter[] = CMD_ARRAY_RESET_RSSI_FILTER;
+static uint8_t cmd_set_irk_filter[] = CMD_ARRAY_SET_IRK_FILTER;
+static const uint8_t cmd_reset_irk_filter[] = CMD_ARRAY_RESET_IRK_FILTER;
 
 //--------------------------------------------
 static HANDLE dev;
@@ -106,6 +113,8 @@ static uint8_t adv_channel_map_size = 0;
 static uint8_t mac_addr[DEVICE_ADDRESS_LENGTH];
 static uint8_t mac_filt;
 static uint8_t follow_filter;
+static uint8_t irk_filt;
+static uint8_t irk[16];
 
 //--------------------------------------------
 static int ble_packet_decode(uint8_t *buf, size_t len, ble_info_t **info)
@@ -294,6 +303,12 @@ static void init(HANDLE hndl)
 		serial_write(dev, cmd_set_mac_filter, sizeof(cmd_set_mac_filter));
 		sleep(1);
 	}
+	if (irk_filt)
+	{
+		memcpy(&cmd_set_irk_filter[5], irk, sizeof(irk));
+		serial_write(dev, cmd_set_irk_filter, sizeof(cmd_set_irk_filter));
+		sleep(1);
+	}
 	if (follow_filter)
 	{
 		cmd_set_follow_filter[5] = follow_filter;
@@ -311,6 +326,7 @@ static void reset(void)
 	decrypt_packet = false;
 	mac_filt = false;
 	follow_filter = false;
+	irk_filt = false;
 }
 
 //--------------------------------------------
@@ -338,7 +354,7 @@ static int serial_packet_decode(uint8_t *buf, size_t len, ble_info_t **info)
 	{
 		return -1;
 	}
-	if (len < pkt_length + MSG_HEADER_SIZE)
+	if (len < (size_t)pkt_length + MSG_HEADER_SIZE)
 	{
 		return 0;
 	}
@@ -400,6 +416,20 @@ static void ltk_set(uint8_t *buf, size_t size, bool send)
 }
 
 //--------------------------------------------
+static void irk_set(uint8_t *buf, size_t size)
+{
+	size_t cnt;
+
+	assert(size == 32);
+
+	for (cnt = 0; cnt < size / 2; cnt++, buf += 2)
+	{
+		sscanf(buf, "%2hhx", &irk[cnt]);
+	}
+	irk_filt = 1;
+}
+
+//--------------------------------------------
 static void min_rssi_set(int8_t rssi)
 {
 	min_rssi = rssi;
@@ -433,4 +463,4 @@ static void close_free(void)
 
 //--------------------------------------------
 SNIFFER(sniffer_blesniff, "B", 1000000, 0, init, reset, serial_packet_decode, follow_device, NULL, NULL, ltk_set,\
-	    min_rssi_set, adv_channel_set, mac_addr_set, NULL, follow_filter_set, close_free);
+	irk_set, min_rssi_set, adv_channel_set, mac_addr_set, NULL, follow_filter_set, close_free);
