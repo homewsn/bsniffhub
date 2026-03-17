@@ -205,6 +205,9 @@ typedef struct
 static N_options_t N_options;
 static N_options_t N_options_dlg;
 
+//--------------------------------------------
+static char devname[DEVNAME_MAX_LEN + 1];
+
 
 //--------------------------------------------
 static void list_iface_load(void)
@@ -472,6 +475,7 @@ static int btn_start_action_cb(Ihandle* ih)
 		ts.opt_p = 1;
 		ts.opt_p_arg = list_lstbox_find_devname_by_id(&list_iface, IupGetInt(lst_iface, "VALUE"));
 		ts.opt_b = 1;
+		strncpy(devname, ts.opt_p_arg, DEVNAME_MAX_LEN);
 		ts.opt_b_arg = list_lstbox_find_devname_by_id(&list_baudr, IupGetInt(lst_baudr, "VALUE"));
 		ts.opt_r = 0;
 	}
@@ -667,7 +671,15 @@ static int btn_stop_action_cb(Ihandle* ih)
 	if (!in_pcap_option)
 	{
 		list_iface_load();
-		lst_load(lst_iface, &list_iface, 1);
+		int id = list_lstbox_find_id_by_devname(&list_iface, devname);
+		if (id != -1)
+		{
+			lst_load(lst_iface, &list_iface, id);
+		}
+		else
+		{
+			lst_load(lst_iface, &list_iface, 1);
+		}
 		IupSetAttribute(hbox_in_capdev, "ACTIVE", "YES");
 		char *name = list_lstbox_find_devname_by_id(&list_sniff, IupGetInt(lst_sniff, "VALUE"));
 		if (!strcmp(name, "B") || !strcmp(name, "S") || !strcmp(name, "N4"))
@@ -1682,7 +1694,7 @@ static int btn_options_action_cb(Ihandle* ih)
 		tgl_option_m_en = IupToggle("Enable -m option", NULL);
 		Ihandle *hbox_tgl_option_m_en = IupHbox(tgl_option_m_en, NULL);
 		IupSetAttribute(hbox_tgl_option_m_en, "NCMARGIN", "3x1");
-		lbl_option_m = IupLabel("Enter MAC address:");
+		lbl_option_m = IupLabel("Enter MAC address (type 'r' at the end if it is a random type):");
 		Ihandle *hbox_lbl_option_m = IupHbox(lbl_option_m, NULL);
 		IupSetAttribute(hbox_lbl_option_m, "NCMARGIN", "3x");
 		txt_option_m = IupText(NULL);
@@ -1810,7 +1822,7 @@ static int btn_options_action_cb(Ihandle* ih)
 		tgl_option_m_en = IupToggle("Enable -m option", NULL);
 		Ihandle *hbox_tgl_option_m_en = IupHbox(tgl_option_m_en, NULL);
 		IupSetAttribute(hbox_tgl_option_m_en, "NCMARGIN", "3x1");
-		lbl_option_m = IupLabel("Enter MAC address:");
+		lbl_option_m = IupLabel("Enter MAC address (type 'r' at the end if it is a random type):");
 		Ihandle *hbox_lbl_option_m = IupHbox(lbl_option_m, NULL);
 		IupSetAttribute(hbox_lbl_option_m, "NCMARGIN", "3x");
 		txt_option_m = IupText(NULL);
