@@ -326,6 +326,8 @@ static int packet_decode(uint8_t *buf, size_t len, ble_info_t **info)
 	}
 	memcpy((*info)->buf + ACCESS_ADDRESS_LENGTH, buf + 12, (*info)->size - ACCESS_ADDRESS_LENGTH - CRC_LENGTH);
 
+	(*info)->pdu = PDU_UNKNOWN;
+
 	if ((*info)->channel >= 37)
 	{
 		// advertising channel packet
@@ -347,6 +349,7 @@ static int packet_decode(uint8_t *buf, size_t len, ble_info_t **info)
 		}
 
 		(*info)->dir = DIR_UNKNOWN;
+		(*info)->pdu = PDU_ADV;
 
 		header_flags = ((*info)->buf)[ACCESS_ADDRESS_LENGTH];
 		if (!mac_filt)
@@ -431,8 +434,6 @@ static int packet_decode(uint8_t *buf, size_t len, ble_info_t **info)
 			}
 		}
 	}
-
-	(*info)->pdu = PDU_UNKNOWN;
 
 	if ((*info)->status_crc)
 	{

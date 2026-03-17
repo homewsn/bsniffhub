@@ -151,11 +151,15 @@ static int packet_decode(uint8_t *buf, size_t len, ble_info_t **info)
 	}
 	memcpy((*info)->buf, buf + 16, (*info)->size - CRC_LENGTH);
 
+	(*info)->pdu = PDU_UNKNOWN;
+
 	if ((*info)->channel >= 37)
 	{
 		// advertising channel packet
 		uint8_t header_flags;
 		uint8_t adv_addr[DEVICE_ADDRESS_LENGTH];
+
+		(*info)->pdu = PDU_ADV;
 
 		if (((((*info)->buf)[ACCESS_ADDRESS_LENGTH]) & PDU_TYPE_MASK) == CONNECT_IND)
 		{
@@ -175,8 +179,6 @@ static int packet_decode(uint8_t *buf, size_t len, ble_info_t **info)
 			}
 		}
 	}
-
-	(*info)->pdu = PDU_UNKNOWN;
 
 	if ((*info)->status_crc == CHECK_OK)
 	{
